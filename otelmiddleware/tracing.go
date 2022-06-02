@@ -88,7 +88,7 @@ func Trace(next http.Handler) http.Handler {
 	return TraceWithOptions()(next)
 }
 
-// extract the route name
+// extract the route name.
 func extractRoute(uri string) string {
 	return uri[1:]
 }
