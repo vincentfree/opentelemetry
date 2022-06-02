@@ -1,6 +1,7 @@
 # opentelemetry-http
-Open Telemetry http middleware
 
-# version
+Open Telemetry http middleware. This package provides an instrumentation for middleware that can be used to trace HTTP requests.
 
-`0.0.2`
+## version
+
+`0.0.3`

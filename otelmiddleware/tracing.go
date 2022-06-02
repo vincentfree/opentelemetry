@@ -5,21 +5,25 @@ import (
 	"net/http"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
-const version = "0.0.1"
+// version is used as the instrumentation version.
+const version = "0.0.3"
 
 // TraceOption takes a traceConfig struct and applies changes.
+// It can be passed to the TraceWithOptions function to configure a traceConfig struct.
 type TraceOption func(*traceConfig)
 
-// traceConfig contains all of the configuration for the library.
+// traceConfig contains all the configuration for the library.
 type traceConfig struct {
 	serviceName string
 	tracer      trace.Tracer
 	propagator  propagation.TextMapPropagator
+	attributes  []attribute.KeyValue
 }
 
 // TraceWithOptions takes TraceOption's and initializes a new trace.Span.
@@ -57,6 +61,10 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 				trace.WithAttributes(semconv.EndUserAttributesFromHTTPRequest(r)...),
 				trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(r.Host, extractRoute(r.RequestURI), r)...),
 				trace.WithSpanKind(trace.SpanKindServer),
+			}
+			// check for the traceConfig.attributes if present apply them to the trace.Span.
+			if len(config.attributes) > 0 {
+				opts = append(opts, trace.WithAttributes(config.attributes...))
 			}
 			// extract the route name which is used for setting a usable name of the span.
 			spanName := extractRoute(r.RequestURI)
@@ -111,5 +119,13 @@ func WithPropagator(p propagation.TextMapPropagator) TraceOption {
 func WithServiceName(serviceName string) TraceOption {
 	return func(c *traceConfig) {
 		c.serviceName = serviceName
+	}
+}
+
+// WithAttributes is a TraceOption to inject your own attributes.
+// Attributes are applied to the trace.Span.
+func WithAttributes(attributes ...attribute.KeyValue) TraceOption {
+	return func(c *traceConfig) {
+		c.attributes = attributes
 	}
 }
