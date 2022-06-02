@@ -8,39 +8,13 @@ import (
 	"testing"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type testHandler func(http.ResponseWriter, *http.Request)
 
 func (th testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	th(w, r)
-}
-
-func TestTrace(t *testing.T) {
-	text := "Hi, test user"
-	h := testHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(text))
-	})
-
-	traceHandler := Trace(h)
-	server := httptest.NewServer(traceHandler)
-	defer server.Close()
-	client := server.Client()
-	response, err := client.Get(fmt.Sprintf("%s/", server.URL))
-	if err != nil {
-		t.Fatalf("calling the server failed due to: %v", err)
-	}
-	if response.StatusCode != 200 {
-		t.Errorf("call dit not have the expected 200 statuscode but was: %d", response.StatusCode)
-	}
-	scanner := bufio.NewScanner(response.Body)
-	scanner.Scan()
-	result := scanner.Text()
-	if result != text {
-		t.Errorf("The response body should contain: %s, but was: %s", text, result)
-	}
-
 }
 
 func TestTraceFunctions(t *testing.T) {
@@ -95,6 +69,17 @@ func TestTraceFunctions(t *testing.T) {
 			fn: TraceWithOptions(WithTracer(otel.Tracer("test-tracer"))),
 		},
 		{
+			desc: "Trace handler With option: WithAttributes",
+			serverHandler: testHandler(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write([]byte(text))
+				if err != nil {
+					panic(err)
+				}
+			}),
+			fn: TraceWithOptions(WithAttributes(attribute.String("test", "test"))),
+		},
+		{
 			desc: "Trace handler With all options",
 			serverHandler: testHandler(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
@@ -107,6 +92,7 @@ func TestTraceFunctions(t *testing.T) {
 				WithTracer(otel.Tracer("test-tracer")),
 				WithPropagator(otel.GetTextMapPropagator()),
 				WithServiceName("testName"),
+				WithAttributes(attribute.String("test", "test")),
 			),
 		},
 	}
