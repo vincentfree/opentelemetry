@@ -2,11 +2,12 @@ package otelmiddleware
 
 import (
 	"fmt"
+	"net/http"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.9.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"go.opentelemetry.io/otel/trace"
-	"net/http"
 )
 
 const version = "0.0.1"
@@ -62,7 +63,7 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 }
 
 func Trace(next http.Handler) http.Handler {
-	return TraceWithOptions(nil)(next)
+	return TraceWithOptions()(next)
 }
 
 func extractRoute(uri string) string {
