@@ -15,7 +15,7 @@ When a span gets initialized it uses the following slice of trace.SpanStartOptio
 
 After these options are applied a new span is created and the middleware will pass the http.ResponseWriter and http.Request to the next http.Handler.
 
-# Functions
+Functions
 	func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler
 	func Trace(next http.Handler) http.Handler
 	func WithAttributes(attributes ...attribute.KeyValue) TraceOption
@@ -23,10 +23,10 @@ After these options are applied a new span is created and the middleware will pa
 	func WithServiceName(serviceName string) TraceOption
 	func WithTracer(tracer trace.Tracer) TraceOption
 
-# Types
+Types
 	type TraceOption func(*traceConfig)
 
-# Structs
+Structs
 	type traceConfig struct {
 		tracer trace.Tracer
 		propagator propagation.TextMapPropagator
@@ -34,8 +34,7 @@ After these options are applied a new span is created and the middleware will pa
 		serviceName string
 	}
 
-
-# Examples
+Examples
 	// create a new ServeMux
 	serve := http.NewServeMux()
 	// add a new route to the ServeMux
