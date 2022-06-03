@@ -1,23 +1,59 @@
 package otelmiddleware_test
 
 import (
-	"log"
-	"net/http"
-
 	"github.com/vincentfree/opentelemetry-http/otelmiddleware"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"net/http"
 )
 
-func Example() {
-	// create a new ServeMux
-	serve := http.NewServeMux()
-	// add a new route to the ServeMux
-	serve.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("Hello World"))
-		if err != nil {
-			// handle error
-		}
-	}))
-	// create the Trace middleware and decorate the ServeMux routes with this middleware.
-	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithServiceName("ExampleService"))(serve)
-	log.Fatal(http.ListenAndServe(":8080", handler))
+type exampleHandler func(http.ResponseWriter, *http.Request)
+
+func (th exampleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	th(w, r)
+}
+
+var (
+	eh = exampleHandler(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("Hello World"))
+	})
+)
+
+func ExampleWithTracer() {
+	// returns a function that excepts a http.Handler.
+	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithTracer(otel.Tracer("example-tracer")))
+	// pass a http.Handler to extend it with Tracing functionality.
+	http.Handle("/", handler(eh))
+}
+
+func ExampleWithServiceName() {
+	// returns a function that excepts a http.Handler.
+	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithServiceName("exampleService"))
+	// pass a http.Handler to extend it with Tracing functionality.
+	http.Handle("/", handler(eh))
+}
+
+func ExampleWithAttributes() {
+	// returns a function that excepts a http.Handler.
+	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithAttributes(attribute.String("example", "value")))
+	// pass a http.Handler to extend it with Tracing functionality.
+	http.Handle("/", handler(eh))
+}
+
+func ExampleWithPropagator() {
+	// returns a function that excepts a http.Handler.
+	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithPropagator(otel.GetTextMapPropagator()))
+	// pass a http.Handler to extend it with Tracing functionality.
+	http.Handle("/", handler(eh))
+}
+
+func ExampleTraceWithOptions() {
+	// returns a function that excepts a http.Handler.
+	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithServiceName("exampleService"))
+	// pass a http.Handler to extend it with Tracing functionality.
+	http.Handle("/", handler(eh))
+}
+
+func ExampleTrace() {
+	http.Handle("/", otelmiddleware.Trace(eh))
 }
