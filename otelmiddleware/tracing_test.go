@@ -114,7 +114,7 @@ func TestTraceFunctions(t *testing.T) {
 			scanner.Scan()
 			result := scanner.Text()
 			if result != text {
-				t.Errorf("The response body should be: %s, but was: %s", text, result)
+				t.Errorf("The response body should be: '%s', but was: '%s'", text, result)
 			}
 		})
 	}
