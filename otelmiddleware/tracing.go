@@ -84,7 +84,7 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 				// start the actual trace.Span.
 				ctx, span = config.tracer.Start(ctx, spanName, opts...)
 			}
-
+			// end span after the function ends
 			defer span.End()
 
 			// pass the span through the request context.
