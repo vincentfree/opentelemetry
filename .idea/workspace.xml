@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5039d0b9-92da-4103-a42f-bb580ae8907f" name="Changes" comment="test commit">
-      <change beforePath="$PROJECT_DIR$/.idea/opentelemetry-http.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/opentelemetry-http.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Merge_at_03_06_2022__15_51__Changes_.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,7 +23,7 @@
       </list>
     </option>
   </component>
-  <component name="GOROOT" url="file:///opt/homebrew/Cellar/go/1.18.2/libexec" />
+  <component name="GOROOT" url="file:///opt/homebrew/Cellar/go/1.19/libexec" />
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
@@ -31,6 +32,13 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="SIGN_OFF_COMMIT" value="true" />
+  </component>
+  <component name="GithubProjectSettings">
+    <option name="branchProtectionPatterns">
+      <list>
+        <option value="main" />
+      </list>
+    </option>
   </component>
   <component name="GithubPullRequestsUISettings">
     <option name="recentNewPullRequestHead">
@@ -60,6 +68,9 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectCodeStyleSettingsMigration">
     <option name="version" value="2" />
   </component>
@@ -77,6 +88,8 @@
     &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;configurable..is.expanded&quot;: &quot;false&quot;,
+    &quot;configurable.GoLibrariesConfigurable.is.expanded&quot;: &quot;true&quot;,
     &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
     &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;/Users/AK53NX/IdeaProjects/opentelemetry-http&quot;,
@@ -84,7 +97,11 @@
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.goide.configuration.GoProjectSettingsConfigurable&quot;
   }
 }</component>
   <component name="RecentsManager">
@@ -92,7 +109,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Go Build.go build github.com/vincentfree/opentelemetry-http">
+  <component name="RunManager" selected="Go Test.go test otelmiddleware">
     <configuration default="true" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="otelmiddleware" />
       <working_directory value="$PROJECT_DIR$" />
@@ -101,10 +118,9 @@
       <filePath value="$PROJECT_DIR$" />
       <method v="2" />
     </configuration>
-    <configuration name="go build github.com/vincentfree/opentelemetry-http" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
-      <module name="otelmiddleware" />
+    <configuration name="go build opentelemetry-http/" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <working_directory value="$PROJECT_DIR$" />
-      <kind value="PACKAGE" />
+      <kind value="DIRECTORY" />
       <package value="github.com/vincentfree/opentelemetry-http" />
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$/main.go" />
@@ -131,6 +147,25 @@
       <framework value="gotest" />
       <method v="2" />
     </configuration>
+    <configuration name="go test otelmiddleware" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="opentelemetry-http" />
+      <working_directory value="$PROJECT_DIR$/otelmiddleware" />
+      <root_directory value="$PROJECT_DIR$" />
+      <kind value="DIRECTORY" />
+      <directory value="$PROJECT_DIR$/otelmiddleware" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <method v="2" />
+    </configuration>
+    <configuration name="tracing_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="opentelemetry-http" />
+      <working_directory value="$PROJECT_DIR$/otelmiddleware" />
+      <kind value="FILE" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/otelmiddleware/tracing_test.go" />
+      <framework value="gotest" />
+      <method v="2" />
+    </configuration>
     <configuration default="true" type="JetRunConfigurationType">
       <module name="otelmiddleware" />
       <method v="2">
@@ -144,9 +179,17 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <list>
+      <item itemvalue="Go Build.go build opentelemetry-http/" />
+      <item itemvalue="Go Test.go test otelmiddleware" />
+      <item itemvalue="Go Test.tracing_test.go" />
+      <item itemvalue="Go Test.Example in github.com/vincentfree/opentelemetry-http/otelmiddleware" />
+    </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Go Build.go build github.com/vincentfree/opentelemetry-http" />
+        <item itemvalue="Go Test.go test otelmiddleware" />
+        <item itemvalue="Go Test.tracing_test.go" />
+        <item itemvalue="Go Build.go build opentelemetry-http/" />
         <item itemvalue="Go Test.Example in github.com/vincentfree/opentelemetry-http/otelmiddleware" />
       </list>
     </recent_temporary>
@@ -161,6 +204,15 @@
       <updated>1654249723618</updated>
       <workItem from="1654249725739" duration="6865000" />
       <workItem from="1654265759979" duration="2739000" />
+      <workItem from="1659029480195" duration="255000" />
+      <workItem from="1659029777289" duration="29000" />
+      <workItem from="1659029831546" duration="28951000" />
+      <workItem from="1659298556588" duration="696000" />
+      <workItem from="1659299269450" duration="1616000" />
+      <workItem from="1659389915193" duration="113000" />
+      <workItem from="1659390197742" duration="1509000" />
+      <workItem from="1659768884381" duration="594000" />
+      <workItem from="1660544458125" duration="2682000" />
     </task>
     <task id="LOCAL-00001" summary="Update the documentation&#10;&#10;Merge pull request #5 from vincentfree/add-with-attributes&#10;&#10;add WithAttributes which lets the user add extra attributes">
       <created>1654250045664</created>
@@ -224,5 +276,12 @@
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/opentelemetry_http$go_test_otelmiddleware.out" NAME="go test otelmiddleware Coverage Results" MODIFIED="1659390375213" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
   </component>
 </project>

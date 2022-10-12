@@ -49,34 +49,41 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 	}
 	// the handler that initializes the trace.Span.
 	return func(next http.Handler) http.Handler {
-
 		// assign the handler which creates the OpenTelemetry trace.Span.
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			requestCtx := r.Context()
 			// extract the OpenTelemetry span context from the context.Context object.
 			ctx := config.propagator.Extract(requestCtx, propagation.HeaderCarrier(r.Header))
-			// the standard trace.SpanStartOption options whom are applied to every server handler.
-			opts := []trace.SpanStartOption{
-				trace.WithAttributes(semconv.NetAttributesFromHTTPRequest("tcp", r)...),
-				trace.WithAttributes(semconv.EndUserAttributesFromHTTPRequest(r)...),
-				trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(r.Host, extractRoute(r.RequestURI), r)...),
-				trace.WithSpanKind(trace.SpanKindServer),
-			}
-			// check for the traceConfig.attributes if present apply them to the trace.Span.
-			if len(config.attributes) > 0 {
-				opts = append(opts, trace.WithAttributes(config.attributes...))
-			}
-			// extract the route name which is used for setting a usable name of the span.
-			spanName := extractRoute(r.RequestURI)
-			if spanName == "" {
-				spanName = fmt.Sprintf("HTTP %s route not found", r.Method)
-			}
+			ctxSpan := trace.SpanFromContext(ctx)
+			var span trace.Span
+			if ctxSpan.IsRecording() {
+				span = ctxSpan
+			} else {
 
-			// create a good name to recognize where the span originated.
-			spanName = fmt.Sprintf("%s /%s", r.Method, spanName)
+				// the standard trace.SpanStartOption options whom are applied to every server handler.
+				opts := []trace.SpanStartOption{
+					trace.WithAttributes(semconv.NetAttributesFromHTTPRequest("tcp", r)...),
+					trace.WithAttributes(semconv.EndUserAttributesFromHTTPRequest(r)...),
+					trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(r.Host, extractRoute(r.RequestURI), r)...),
+					trace.WithSpanKind(trace.SpanKindServer),
+				}
 
-			// start the actual trace.Span.
-			ctx, span := config.tracer.Start(ctx, spanName, opts...)
+				// check for the traceConfig.attributes if present apply them to the trace.Span.
+				if len(config.attributes) > 0 {
+					opts = append(opts, trace.WithAttributes(config.attributes...))
+				}
+				// extract the route name which is used for setting a usable name of the span.
+				spanName := extractRoute(r.RequestURI)
+				if spanName == "" {
+					spanName = fmt.Sprintf("HTTP %s route not found", r.Method)
+				}
+
+				// create a good name to recognize where the span originated.
+				spanName = fmt.Sprintf("%s /%s", r.Method, spanName)
+
+				// start the actual trace.Span.
+				ctx, span = config.tracer.Start(ctx, spanName, opts...)
+			}
 
 			defer span.End()
 
