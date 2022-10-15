@@ -58,8 +58,17 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 			var span trace.Span
 			if ctxSpan.IsRecording() {
 				span = ctxSpan
-			} else {
+				attr := []attribute.KeyValue(nil)
+				attr = append(attr, semconv.NetAttributesFromHTTPRequest("tcp", r)...)
+				attr = append(attr, semconv.EndUserAttributesFromHTTPRequest(r)...)
+				attr = append(attr, semconv.HTTPServerAttributesFromHTTPRequest(r.Host, extractRoute(r.RequestURI), r)...)
 
+				if len(config.attributes) > 0 {
+					attr = append(attr, config.attributes...)
+				}
+
+				span.SetAttributes(attr...)
+			} else {
 				// the standard trace.SpanStartOption options whom are applied to every server handler.
 				opts := []trace.SpanStartOption{
 					trace.WithAttributes(semconv.NetAttributesFromHTTPRequest("tcp", r)...),

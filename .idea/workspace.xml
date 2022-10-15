@@ -5,8 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5039d0b9-92da-4103-a42f-bb580ae8907f" name="Changes" comment="test commit">
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Merge_at_03_06_2022__15_51__Changes_.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/otelmiddleware/tracing.go" beforeDir="false" afterPath="$PROJECT_DIR$/otelmiddleware/tracing.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -23,7 +22,7 @@
       </list>
     </option>
   </component>
-  <component name="GOROOT" url="file:///opt/homebrew/Cellar/go/1.19/libexec" />
+  <component name="GOROOT" url="file:///opt/homebrew/Cellar/go/1.19.2/libexec" />
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
@@ -213,6 +212,7 @@
       <workItem from="1659390197742" duration="1509000" />
       <workItem from="1659768884381" duration="594000" />
       <workItem from="1660544458125" duration="2682000" />
+      <workItem from="1665865450722" duration="4000" />
     </task>
     <task id="LOCAL-00001" summary="Update the documentation&#10;&#10;Merge pull request #5 from vincentfree/add-with-attributes&#10;&#10;add WithAttributes which lets the user add extra attributes">
       <created>1654250045664</created>
