@@ -7,12 +7,12 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.11.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
 // version is used as the instrumentation version.
-const version = "0.0.6"
+const version = "0.0.7"
 
 // TraceOption takes a traceConfig struct and applies changes.
 // It can be passed to the TraceWithOptions function to configure a traceConfig struct.
@@ -57,10 +57,13 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 			ctx := config.propagator.Extract(requestCtx, propagation.HeaderCarrier(r.Header))
 			// the standard trace.SpanStartOption options whom are applied to every server handler.
 			opts := []trace.SpanStartOption{
+
 				trace.WithAttributes(semconv.NetAttributesFromHTTPRequest("tcp", r)...),
 				trace.WithAttributes(semconv.EndUserAttributesFromHTTPRequest(r)...),
 				trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(r.Host, extractRoute(r.RequestURI), r)...),
-				trace.WithSpanKind(trace.SpanKindServer),
+				trace.WithAttributes(semconv.HTTPClientAttributesFromHTTPRequest(r)...),
+				trace.WithAttributes(semconv.TelemetrySDKLanguageGo),
+				trace.WithSpanKind(trace.SpanKindClient),
 			}
 			// check for the traceConfig.attributes if present apply them to the trace.Span.
 			if len(config.attributes) > 0 {
