@@ -17,10 +17,12 @@ When a span gets initialized it uses the following slice of `trace.SpanStartOpti
 
 ```go
 opts := []trace.SpanStartOption{
-    trace.WithAttributes(semconv.NetAttributesFromHTTPRequest("tcp", request)...),
-    trace.WithAttributes(semconv.EndUserAttributesFromHTTPRequest(request)...),
-    trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(request.Host, extractRoute(request.RequestURI), request)...),
-    trace.WithSpanKind(trace.SpanKindServer),
+    trace.WithAttributes(semconv.NetAttributesFromHTTPRequest("tcp", r)...),
+    trace.WithAttributes(semconv.EndUserAttributesFromHTTPRequest(r)...),
+    trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(r.Host, extractRoute(r.RequestURI), r)...),
+    trace.WithAttributes(semconv.HTTPClientAttributesFromHTTPRequest(r)...),
+    trace.WithAttributes(semconv.TelemetrySDKLanguageGo),
+    trace.WithSpanKind(trace.SpanKindClient),
 }
 ```
 
