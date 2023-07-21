@@ -15,7 +15,7 @@
 package otelmiddleware_test
 
 import (
-	"github.com/vincentfree/opentelemetry-http/otelmiddleware"
+	"github.com/vincentfree/opentelemetry/otelmiddleware"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"net/http"
