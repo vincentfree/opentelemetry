@@ -3,15 +3,16 @@
 ## Supported Versions
 
 | Version | Supported          |
-| ------- | ------------------ |
+|---------|--------------------|
+| 0.0.8   | :white_check_mark: |
 | 0.0.7   | :white_check_mark: |
 | 0.0.6   | :white_check_mark: |
-| 0.0.5   | :white_check_mark: |
+| 0.0.5   | :x:                |
 | < 0.0.5 | :x:                |
 
 ## Reporting a Vulnerability
 
-You can report a security vunerability using github issues with the vunerability label. I will monitor these issues and fix them asap.
+You can report a security vulnerability using Github issues with the vulnerability label. I will monitor these issues and fix them asap.
 
 <!--
 Use this section to tell people how to report a vulnerability.
