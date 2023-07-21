@@ -13,25 +13,27 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-    
-    - name: Install Dagger
-      uses: dagger/dagger-for-github@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
       with:
-        install-only: true
+        go-version: 1.18
 
-    - name: Dagger project update
-      run: dagger project update
+    - name: Build
+      run: go build -v ./...
 
-    - name: Dagger do test
-      run: dagger do test --log-format plain
+    - name: Test
+      run: go test -v ./...
+    
+#    - name: Install Dagger
+#      uses: dagger/dagger-for-github@v3
+#      with:
+#        install-only: true
+#
+#    - name: Dagger project update
+#      run: dagger project update
+#
+#    - name: Dagger do test
+#      run: dagger do test --log-format plain
 
-    # - name: Set up Go
-    #   uses: actions/setup-go@v3
-    #   with:
-    #     go-version: 1.18
 
-    # - name: Build
-    #   run: go build -v ./...
-
-    # - name: Test
-    #   run: go test -v ./...
