@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package otelzerolog
+package otelslog
 
 import (
-	"github.com/rs/zerolog"
+	"context"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/exp/slog"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -35,11 +38,7 @@ type logConfig struct {
 }
 
 type Logger struct {
-	*zerolog.Logger
-}
-
-type Event struct {
-	*zerolog.Event
+	*slog.Logger
 }
 
 var (
@@ -125,51 +124,101 @@ func WithAttributes(attributes ...attribute.KeyValue) LogOption {
 }
 
 // AddTracingContext lets you add the trace context to a structured log
-func AddTracingContext(span trace.Span, err ...error) func(event *zerolog.Event) {
+func AddTracingContext(span trace.Span, err ...error) []slog.Attr {
 	a := []attribute.KeyValue(nil)
 	return AddTracingContextWithAttributes(span, a, err...)
 }
 
 // AddTracingContextWithAttributes lets you add the trace context to a structured log, including attribute.KeyValue's to extend the log
-func AddTracingContextWithAttributes(span trace.Span, attributes []attribute.KeyValue, err ...error) func(event *zerolog.Event) {
-	return func(event *zerolog.Event) {
-		if len(err) > 0 {
-			span.RecordError(err[0])
-			span.SetStatus(codes.Error, err[0].Error())
-			event.Err(err[0])
-		}
+func AddTracingContextWithAttributes(span trace.Span, attributes []attribute.KeyValue, err ...error) []slog.Attr {
+	var result []slog.Attr
+	if len(err) > 0 && err[0] != nil {
+		span.RecordError(err[0])
+		span.SetStatus(codes.Error, err[0].Error())
+		result = append(result, slog.String("error", err[0].Error()))
+	}
 
-		e := event.Str(_traceId, span.SpanContext().TraceID().String()).Str(_spanId, span.SpanContext().SpanID().String())
-		// set service.name if the value isn't empty
-		if _serviceName != "" {
-			e.Str("service.name", _serviceName)
-		}
+	result = append(result,
+		slog.String(_traceId, span.SpanContext().TraceID().String()),
+		slog.String(_spanId, span.SpanContext().SpanID().String()),
+	)
+	// set service.name if the value isn't empty
+	if _serviceName != "" {
+		result = append(result, slog.String("service.name", _serviceName))
+	}
 
-		attrs := attributes
-		attrs = append(attrs, _attributes...)
+	attrs := attributes
+	attrs = append(attrs, _attributes...)
 
-		// add attributes when global or passed attributes are > 0
-		if len(attrs) > 0 {
-			for _, attr := range attrs {
-				switch attr.Value.Type() {
-				case attribute.STRING:
-					e.Str(_attrPrefix+"."+string(attr.Key), attr.Value.AsString())
-				case attribute.FLOAT64:
-					e.Float64(_attrPrefix+"."+string(attr.Key), attr.Value.AsFloat64())
-				case attribute.BOOL:
-					e.Bool(_attrPrefix+"."+string(attr.Key), attr.Value.AsBool())
-				case attribute.INT64:
-					e.Int64(_attrPrefix+"."+string(attr.Key), attr.Value.AsInt64())
-				case attribute.BOOLSLICE:
-					e.Bools(_attrPrefix+"."+string(attr.Key), attr.Value.AsBoolSlice())
-				case attribute.INT64SLICE:
-					e.Ints64(_attrPrefix+"."+string(attr.Key), attr.Value.AsInt64Slice())
-				case attribute.FLOAT64SLICE:
-					e.Floats64(_attrPrefix+"."+string(attr.Key), attr.Value.AsFloat64Slice())
-				case attribute.STRINGSLICE:
-					e.Strs(_attrPrefix+"."+string(attr.Key), attr.Value.AsStringSlice())
+	// add attributes when global or passed attributes are > 0
+	if len(attrs) > 0 {
+		for _, attr := range attrs {
+			switch attr.Value.Type() {
+			case attribute.STRING:
+				result = append(result, slog.String(_attrPrefix+"."+string(attr.Key), attr.Value.AsString()))
+			case attribute.FLOAT64:
+				result = append(result, slog.Float64(_attrPrefix+"."+string(attr.Key), attr.Value.AsFloat64()))
+			case attribute.BOOL:
+				result = append(result, slog.Bool(_attrPrefix+"."+string(attr.Key), attr.Value.AsBool()))
+			case attribute.INT64:
+				result = append(result, slog.Int64(_attrPrefix+"."+string(attr.Key), attr.Value.AsInt64()))
+			case attribute.BOOLSLICE:
+				s := attr.Value.AsBoolSlice()
+				vals := []slog.Attr(nil)
+				for i, b := range s {
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					vals = append(vals, slog.Bool(key, b))
 				}
+				result = append(result, vals...)
+
+			case attribute.INT64SLICE:
+				s := attr.Value.AsInt64Slice()
+				vals := []slog.Attr(nil)
+				for i, b := range s {
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					vals = append(vals, slog.Int64(key, b))
+				}
+				result = append(result, vals...)
+			case attribute.FLOAT64SLICE:
+				s := attr.Value.AsFloat64Slice()
+				vals := []slog.Attr(nil)
+				for i, b := range s {
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					vals = append(vals, slog.Float64(key, b))
+				}
+				result = append(result, vals...)
+			case attribute.STRINGSLICE:
+				s := attr.Value.AsStringSlice()
+				vals := []slog.Attr(nil)
+				for i, b := range s {
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					vals = append(vals, slog.String(key, b))
+				}
+				result = append(result, vals...)
 			}
 		}
 	}
+
+	return result
+}
+
+func New() *Logger {
+	return &Logger{slog.New(slog.NewJSONHandler(os.Stdout, nil))}
+}
+
+func NewWithHandler(handler slog.Handler) *Logger {
+	if handler == nil {
+		return New()
+	}
+	return &Logger{slog.New(handler)}
+}
+
+func (l Logger) WithTracingContext(ctx context.Context, level slog.Level, msg string, span trace.Span, err error, attrs ...slog.Attr) {
+	attrs = append(attrs, AddTracingContext(span, err)...)
+	l.LogAttrs(ctx, level, msg, attrs...)
+}
+
+func (l Logger) WithTracingContextAndAttributes(ctx context.Context, level slog.Level, msg string, span trace.Span, err error, attributes []attribute.KeyValue, attrs ...slog.Attr) {
+	attrs = append(attrs, AddTracingContextWithAttributes(span, attributes, err)...)
+	l.LogAttrs(ctx, level, msg, attrs...)
 }
