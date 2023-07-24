@@ -34,14 +34,6 @@ type logConfig struct {
 	attributePrefix string
 }
 
-type Logger struct {
-	*zerolog.Logger
-}
-
-type Event struct {
-	*zerolog.Event
-}
-
 var (
 	// _traceId has a default trace ID key in the logs
 	_traceId = "traceID"
