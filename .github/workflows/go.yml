@@ -12,6 +12,7 @@ jobs:
       matrix:
         lib: [otelmiddleware, otelzerolog, otelslog]
     runs-on: ubuntu-latest
+    name: "Build and test - ${{ matrix.lib }}"
     steps:
       - uses: actions/checkout@v3
         name: Checkout code
