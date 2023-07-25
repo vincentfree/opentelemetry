@@ -7,25 +7,30 @@ on:
     branches: [ main ]
 
 jobs:
-
-  build:
+  matrix:
+    strategy:
+      matrix:
+        lib: [otelmiddleware, otelzerolog, otelslog]
     runs-on: ubuntu-latest
+    name: "Build and test - ${{ matrix.lib }}"
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+        name: Checkout code
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version-file: 'go.mod'
-        # go-version: "1.20.6"
+      - uses: actions/setup-go@v3
+        name: Set up Go
+        with:
+          go-version-file: "${{ matrix.lib }}/go.mod"
+          # go-version: "1.20.6"
 
-    - name: Build
-      run: go build -v ./...
+      - name: Build
+        run: go build -v ./...
+        working-directory: "${{ matrix.lib }}"
 
-    - name: Test
-      run: go test -v ./...
-    
+      - name: Test
+        run: go test -v ./...
+        working-directory: "${{ matrix.lib }}"
+
 #    - name: Install Dagger
 #      uses: dagger/dagger-for-github@v3
 #      with:

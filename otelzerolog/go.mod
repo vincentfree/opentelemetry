@@ -1,4 +1,4 @@
-module github.com/vincentfree/opentelemetry
+module github.com/vincentfree/opentelemetry/otelzerolog
 
 go 1.20
 
@@ -6,7 +6,7 @@ require (
 	github.com/rs/zerolog v1.29.1
 	go.opentelemetry.io/otel v1.16.0
 	go.opentelemetry.io/otel/trace v1.16.0
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090
 )
 
 require (
