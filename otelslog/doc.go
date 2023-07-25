@@ -17,16 +17,15 @@ Package otelslog provides a function to extend structured logs using slog with t
 
 Currently, slog is offered through golang.org/x/exp/slog slog.Logger is decorated with standard metadata extracted from the trace.SpanContext, a traceID, spanID and additional information is injected into a log.
 
-TODO left here
 The initialization uses file level variable configuration to set defaults for the functions to use. SetLogOptions can overwrite the defaults.
 
 When the configuration is done AddTracingContext and AddTracingContextWithAttributes decorate slog logs with data from the trace context.
 
-To add trace context data to logging, the context can be can be passed by using slog.LogAttrs(nil, slog.LevelInfo, "this is a log", otelslog.AddTracingContext(span)...) for example.
+To add trace context data to logging, the context can be passed by using slog.LogAttrs(nil, slog.LevelInfo, "this is a log", otelslog.AddTracingContext(span)...) for example.
 The use of slog.LogAttrs is advised due to AddTracingContext and AddTracingContextWithAttributes returning []slog.Attr which slog.LogAttrs accepts as a type.
 Other functions accept ...any which in my tests resulted in !BADKEY entries.
 
-Next to using native slog, this package also offers a Logger which extends the slog.Logger with it's own functions to simplify working with slog.Logger's.
+Next to using native slog, this package also offers a Logger which extends the slog.Logger with its own functions to simplify working with slog.Logger's.
 
 The Logger can be used as follows:
 
