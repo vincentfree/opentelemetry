@@ -1,15 +1,15 @@
-# OpenTelemetry extensions - otelzerolog
+# OpenTelemetry extensions - otellogrus
 
-| Home                 | Related                                                                  |
-|----------------------|--------------------------------------------------------------------------|
-| [Home](../README.md) | [otelslog](../otelslog/README.md), [otellogrus](../otellogrus/README.md) |
+| Home                 | Related                                                                    |
+|----------------------|----------------------------------------------------------------------------|
+| [Home](../README.md) | [otelslog](../otelslog/README.md), [otelzerolog](../otelzerolog/README.md) |
 
 ----
 
 [![Go](https://github.com/vincentfree/opentelemetry/actions/workflows/go.yml/badge.svg)](https://github.com/vincentfree/opentelemetry/actions/workflows/go.yml)
 [![CodeQL](https://github.com/vincentfree/opentelemetry/actions/workflows/codeql.yml/badge.svg)](https://github.com/vincentfree/opentelemetry/actions/workflows/codeql.yml)
 [![Dependency Review](https://github.com/vincentfree/opentelemetry/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/vincentfree/opentelemetry/actions/workflows/dependency-review.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/vincentfree/opentelemetry/otelmiddleware.svg)](https://pkg.go.dev/github.com/vincentfree/opentelemetry/otelzerolog)
+[![Go Reference](https://pkg.go.dev/badge/github.com/vincentfree/opentelemetry/otelmiddleware.svg)](https://pkg.go.dev/github.com/vincentfree/opentelemetry/otellogrus)
 
 Package `otelzerolog` provides a function to extend structured logs using zerolog with the Open Telemetry trace related
 context.
