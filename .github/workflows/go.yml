@@ -10,7 +10,7 @@ jobs:
   matrix:
     strategy:
       matrix:
-        lib: [otelmiddleware, otelzerolog, otelslog]
+        lib: [otelmiddleware, otelzerolog, otelslog, otellogrus]
     runs-on: ubuntu-latest
     name: "Build and test - ${{ matrix.lib }}"
     steps:

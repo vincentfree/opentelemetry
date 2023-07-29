@@ -1,8 +1,8 @@
 # OpenTelemetry extensions - otelslog
 
-| Home                 | Related                                 |
-|----------------------|-----------------------------------------|
-| [Home](../README.md) | [otelzerolog](../otelzerolog/README.md) |
+| Home                 | Related                                                                        |
+|----------------------|--------------------------------------------------------------------------------|
+| [Home](../README.md) | [otelzerolog](../otelzerolog/README.md), [otellogrus](../otellogrus/README.md) |
 
 ----
 
