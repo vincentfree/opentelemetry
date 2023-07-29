@@ -53,6 +53,9 @@ func TestWithSpanID(t *testing.T) {
 	id := "testSpanID"
 	// given a new span ID name
 	SetLogOptions(WithSpanID(id))
+	t.Cleanup(func() {
+		SetLogOptions(WithSpanID("spanID"))
+	})
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
@@ -70,6 +73,9 @@ func TestWithTraceID(t *testing.T) {
 	id := "testTraceID"
 	// given a new span ID name
 	SetLogOptions(WithTraceID(id))
+	t.Cleanup(func() {
+		SetLogOptions(WithTraceID("traceID"))
+	})
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
