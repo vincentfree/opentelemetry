@@ -30,7 +30,12 @@ jobs:
       - name: Test
         run: go test -v ./...
         working-directory: "${{ matrix.lib }}"
-
+      
+      - id: govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+           go-package: "./${{ matrix.lib }}/..."
+      
 #    - name: Install Dagger
 #      uses: dagger/dagger-for-github@v3
 #      with:
