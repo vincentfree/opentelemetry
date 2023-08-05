@@ -35,7 +35,7 @@ jobs:
         uses: golang/govulncheck-action@v1
         with:
            go-package: "./${{ matrix.lib }}/..."
-      
+
 #    - name: Install Dagger
 #      uses: dagger/dagger-for-github@v3
 #      with:
