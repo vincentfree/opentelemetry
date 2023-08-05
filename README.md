@@ -12,7 +12,6 @@ They provide functionality that makes working with traces, and logs easier.
 Currently, there is support for:
 
 * http severs through [otelmiddleware](otelmiddleware/README.md)
-* logging with [zerolog](otelzerolog/README.md)
-* logging with [slog](otelslog/README.md)
+* logging with [zerolog](otelzerolog/README.md), [slog](otelslog/README.md), [logrus](otellogrus/README.md)
 
 More extensions might follow for other logging libraries and more.
