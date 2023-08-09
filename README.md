@@ -32,3 +32,5 @@ BenchmarkZerolog-10                  22955486       51.40 ns/op        0 B/op   
 BenchmarkZerologTrace-10              6346458       195.8 ns/op      128 B/op        3 allocs/op
 BenchmarkZerologTraceWithAttr-10      1254688       952.4 ns/op      312 B/op       12 allocs/op
 ```
+
+> pre Go 1.21(slog was based on the golang.org/x/exp version not log/slog)

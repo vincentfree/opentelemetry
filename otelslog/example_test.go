@@ -20,7 +20,7 @@ import (
 	"github.com/vincentfree/opentelemetry/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"os"
 )
 

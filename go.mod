@@ -1,6 +1,6 @@
 module github.com/vincentfree/opentelemetry
 
-go 1.20
+go 1.21
 
 require (
 	github.com/rs/zerolog v1.30.0
@@ -9,7 +9,7 @@ require (
 	github.com/vincentfree/opentelemetry/otelslog v0.0.2
 	github.com/vincentfree/opentelemetry/otelzerolog v0.0.10
 	go.opentelemetry.io/otel v1.16.0
-	golang.org/x/exp v0.0.0-20230728194245-b0cb94b80691
+	golang.org/x/exp v0.0.0-20230809150735-7b3493d9a819
 )
 
 require (
@@ -19,5 +19,5 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	go.opentelemetry.io/otel/metric v1.16.0 // indirect
 	go.opentelemetry.io/otel/trace v1.16.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 )
