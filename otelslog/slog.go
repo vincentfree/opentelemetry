@@ -132,27 +132,25 @@ func AddTracingContext(span trace.Span, err ...error) []slog.Attr {
 // AddTracingContextWithAttributes lets you add the trace context to a structured log, including attribute.KeyValue's to extend the log
 func AddTracingContextWithAttributes(span trace.Span, attributes []attribute.KeyValue, err ...error) []slog.Attr {
 	var result []slog.Attr
-	if len(err) > 0 && err[0] != nil {
-		span.RecordError(err[0])
-		span.SetStatus(codes.Error, err[0].Error())
-		result = append(result, slog.String("error", err[0].Error()))
-	}
+	result = handleError(span, err, result)
+	result = addTraceContextToLog(span, result)
+	result = addServiceName(result)
 
-	result = append(result,
-		slog.String(_traceId, span.SpanContext().TraceID().String()),
-		slog.String(_spanId, span.SpanContext().SpanID().String()),
-	)
-	// set service.name if the value isn't empty
-	if _serviceName != "" {
-		result = append(result, slog.String("service.name", _serviceName))
-	}
+	// _attributes are a global set of attributes added at initialization
+	attributes = append(attributes, _attributes...)
 
-	attrs := attributes
-	attrs = append(attrs, _attributes...)
+	// add attributes when global or passed in attributes are > 0
+	result = ConvertToSlogFormat(attributes, result)
 
-	// add attributes when global or passed attributes are > 0
-	if len(attrs) > 0 {
-		for _, attr := range attrs {
+	return result
+}
+
+// ConvertToSlogFormat converts a list of attribute.KeyValue into the slog.Attr format
+// and appends them to "result". The different types of attribute.KeyValue's
+// are converted accordingly.
+func ConvertToSlogFormat(attributes []attribute.KeyValue, result []slog.Attr) []slog.Attr {
+	if len(attributes) > 0 {
+		for _, attr := range attributes {
 			switch attr.Value.Type() {
 			case attribute.STRING:
 				result = append(result, slog.String(_attrPrefix+"."+string(attr.Key), attr.Value.AsString()))
@@ -198,21 +196,55 @@ func AddTracingContextWithAttributes(span trace.Span, attributes []attribute.Key
 			}
 		}
 	}
-
 	return result
 }
 
+func addServiceName(result []slog.Attr) []slog.Attr {
+	// set service.name if the value isn't empty
+	if _serviceName != "" {
+		result = append(result, slog.String("service.name", _serviceName))
+	}
+	return result
+}
+
+func addTraceContextToLog(span trace.Span, result []slog.Attr) []slog.Attr {
+	result = append(result,
+		slog.String(_traceId, span.SpanContext().TraceID().String()),
+		slog.String(_spanId, span.SpanContext().SpanID().String()),
+	)
+	return result
+}
+
+func handleError(span trace.Span, err []error, result []slog.Attr) []slog.Attr {
+	if len(err) > 0 && err[0] != nil {
+		span.RecordError(err[0])
+		span.SetStatus(codes.Error, err[0].Error())
+		result = append(result, slog.String("error", err[0].Error()))
+	}
+	return result
+}
+
+// New is a function that initializes a new Logger instance,
+// with JSON logging enabled as the logging format.
 func New() *Logger {
 	return &Logger{slog.New(slog.NewJSONHandler(os.Stdout, nil))}
 }
 
+// NewWithHandler initializes a new Logger instance with a specified slog.Handler.
+// If no handler is provided (i.e., handler is nil), it calls the New() function
+// to create a Logger with the default setup.
 func NewWithHandler(handler slog.Handler) *Logger {
+	// If handler is nil, create a default Logger with json logging to standard output
 	if handler == nil {
 		return New()
 	}
+
 	return &Logger{slog.New(handler)}
 }
 
+// WithTracingContext is a method for the Logger struct which takes a context.Context
+// and log parameters, including a span from distributed tracing and (optional) error information.
+// When logging without an error, pass a nil
 func (l Logger) WithTracingContext(ctx context.Context, level slog.Level, msg string, span trace.Span, err error, attrs ...slog.Attr) {
 	attrs = append(attrs, AddTracingContext(span, err)...)
 	l.LogAttrs(ctx, level, msg, attrs...)
