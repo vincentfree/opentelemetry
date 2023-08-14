@@ -164,7 +164,7 @@ func ConvertToSlogFormat(attributes []attribute.KeyValue, result []slog.Attr) []
 				s := attr.Value.AsBoolSlice()
 				vals := []slog.Attr(nil)
 				for i, b := range s {
-					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.Itoa(i)
 					vals = append(vals, slog.Bool(key, b))
 				}
 				result = append(result, vals...)
@@ -173,7 +173,7 @@ func ConvertToSlogFormat(attributes []attribute.KeyValue, result []slog.Attr) []
 				s := attr.Value.AsInt64Slice()
 				vals := []slog.Attr(nil)
 				for i, b := range s {
-					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.Itoa(i)
 					vals = append(vals, slog.Int64(key, b))
 				}
 				result = append(result, vals...)
@@ -181,7 +181,7 @@ func ConvertToSlogFormat(attributes []attribute.KeyValue, result []slog.Attr) []
 				s := attr.Value.AsFloat64Slice()
 				vals := []slog.Attr(nil)
 				for i, b := range s {
-					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.Itoa(i)
 					vals = append(vals, slog.Float64(key, b))
 				}
 				result = append(result, vals...)
@@ -189,7 +189,7 @@ func ConvertToSlogFormat(attributes []attribute.KeyValue, result []slog.Attr) []
 				s := attr.Value.AsStringSlice()
 				vals := []slog.Attr(nil)
 				for i, b := range s {
-					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.Itoa(i)
 					vals = append(vals, slog.String(key, b))
 				}
 				result = append(result, vals...)

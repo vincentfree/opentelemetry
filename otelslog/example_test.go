@@ -17,10 +17,12 @@ package otelslog_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/vincentfree/opentelemetry/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"log/slog"
+	"math"
 	"os"
 )
 
@@ -153,4 +155,20 @@ func ExampleNewWithHandler() {
 	logger := otelslog.NewWithHandler(slog.NewTextHandler(os.Stdout, nil))
 	// pass span to AddTracingContext
 	logger.WithTracingContext(nil, slog.LevelInfo, "in case of a success", span, nil)
+}
+
+func ExampleConvertToSlogFormat() {
+	attributes := []attribute.KeyValue{
+		attribute.String("stringExample", "this is an example string"),
+		attribute.Float64("float64Example", 42.0),
+		attribute.Int64("int64Example", 42),
+		attribute.Bool("boolExample", true),
+		attribute.BoolSlice("boolSliceExample", []bool{true, false, true}),
+		attribute.Int64Slice("int64SliceExample", []int64{42, math.MaxInt64}),
+		attribute.Float64Slice("float64SliceExample", []float64{42.0, math.Pi}),
+		attribute.StringSlice("stringSliceExample", []string{"test", "values"}),
+	}
+	attrs := []slog.Attr{slog.String("init", "attr")}
+	attrs = otelslog.ConvertToSlogFormat(attributes, attrs)
+	fmt.Println(attrs)
 }
