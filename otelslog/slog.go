@@ -164,7 +164,7 @@ func ConvertToSlogFormat(attributes []attribute.KeyValue, result []slog.Attr) []
 				s := attr.Value.AsBoolSlice()
 				vals := []slog.Attr(nil)
 				for i, b := range s {
-					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.Itoa(i)
 					vals = append(vals, slog.Bool(key, b))
 				}
 				result = append(result, vals...)
@@ -173,7 +173,7 @@ func ConvertToSlogFormat(attributes []attribute.KeyValue, result []slog.Attr) []
 				s := attr.Value.AsInt64Slice()
 				vals := []slog.Attr(nil)
 				for i, b := range s {
-					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.Itoa(i)
 					vals = append(vals, slog.Int64(key, b))
 				}
 				result = append(result, vals...)
@@ -181,7 +181,7 @@ func ConvertToSlogFormat(attributes []attribute.KeyValue, result []slog.Attr) []
 				s := attr.Value.AsFloat64Slice()
 				vals := []slog.Attr(nil)
 				for i, b := range s {
-					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.Itoa(i)
 					vals = append(vals, slog.Float64(key, b))
 				}
 				result = append(result, vals...)
@@ -189,7 +189,7 @@ func ConvertToSlogFormat(attributes []attribute.KeyValue, result []slog.Attr) []
 				s := attr.Value.AsStringSlice()
 				vals := []slog.Attr(nil)
 				for i, b := range s {
-					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.FormatInt(int64(i), 10)
+					key := _attrPrefix + "." + string(attr.Key) + "." + strconv.Itoa(i)
 					vals = append(vals, slog.String(key, b))
 				}
 				result = append(result, vals...)
@@ -250,6 +250,9 @@ func (l Logger) WithTracingContext(ctx context.Context, level slog.Level, msg st
 	l.LogAttrs(ctx, level, msg, attrs...)
 }
 
+// WithTracingContextAndAttributes is a method for the Logger struct which takes a context.Context
+// and log parameters, including a span from distributed tracing, open telemetry attributes in the attribute.KeyValue format and (optional) error information.
+// When logging without an error, pass a nil
 func (l Logger) WithTracingContextAndAttributes(ctx context.Context, level slog.Level, msg string, span trace.Span, err error, attributes []attribute.KeyValue, attrs ...slog.Attr) {
 	attrs = append(attrs, AddTracingContextWithAttributes(span, attributes, err)...)
 	l.LogAttrs(ctx, level, msg, attrs...)

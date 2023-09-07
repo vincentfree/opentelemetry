@@ -24,6 +24,7 @@ import (
 	"golang.org/x/exp/constraints"
 	"io"
 	"log/slog"
+	"math"
 	"os"
 	"strings"
 	"testing"
@@ -232,6 +233,34 @@ func TestLoggerInit(t *testing.T) {
 	}
 
 	os.Stdout = rescueStdout
+}
+
+func BenchmarkConvertToSlogFormatSimple(b *testing.B) {
+	attributes := []attribute.KeyValue{
+		attribute.String("stringExample", "this is an example string"),
+		attribute.Float64("float64Example", 42.0),
+		attribute.Int64("int64Example", 42),
+		attribute.Bool("boolExample", true),
+	}
+	attrs := []slog.Attr{slog.String("init", "attr")}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		attrs = ConvertToSlogFormat(attributes, attrs)
+	}
+}
+
+func BenchmarkConvertToSlogFormatWithSlice(b *testing.B) {
+	attributes := []attribute.KeyValue{
+		attribute.BoolSlice("boolSliceExample", []bool{true, false, true}),
+		attribute.Int64Slice("int64SliceExample", []int64{42, math.MaxInt64}),
+		attribute.Float64Slice("float64SliceExample", []float64{42.0, math.Pi}),
+		attribute.StringSlice("stringSliceExample", []string{"test", "values"}),
+	}
+	attrs := []slog.Attr{slog.String("init", "attr")}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		attrs = ConvertToSlogFormat(attributes, attrs)
+	}
 }
 
 func attributeCheck[T constraints.Ordered](t *testing.T, data any, checkValue T) {
