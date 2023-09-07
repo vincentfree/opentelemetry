@@ -250,6 +250,9 @@ func (l Logger) WithTracingContext(ctx context.Context, level slog.Level, msg st
 	l.LogAttrs(ctx, level, msg, attrs...)
 }
 
+// WithTracingContextAndAttributes is a method for the Logger struct which takes a context.Context
+// and log parameters, including a span from distributed tracing, open telemetry attributes in the attribute.KeyValue format and (optional) error information.
+// When logging without an error, pass a nil
 func (l Logger) WithTracingContextAndAttributes(ctx context.Context, level slog.Level, msg string, span trace.Span, err error, attributes []attribute.KeyValue, attrs ...slog.Attr) {
 	attrs = append(attrs, AddTracingContextWithAttributes(span, attributes, err)...)
 	l.LogAttrs(ctx, level, msg, attrs...)
