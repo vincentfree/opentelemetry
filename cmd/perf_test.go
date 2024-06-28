@@ -11,7 +11,7 @@ import (
 	"github.com/vincentfree/opentelemetry/otelzerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"math"
 	"testing"
 )

@@ -9,7 +9,7 @@ import (
 	"github.com/vincentfree/opentelemetry/otelslog"
 	"github.com/vincentfree/opentelemetry/otelzerolog"
 	"go.opentelemetry.io/otel"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func main() {

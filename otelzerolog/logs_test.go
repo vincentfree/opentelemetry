@@ -19,11 +19,14 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/exp/constraints"
 	"io"
+	"math/rand"
 	"os"
+	"strconv"
 	"testing"
 )
 
@@ -167,6 +170,54 @@ func TestAddTracingContextWithAttributes(t *testing.T) {
 	attributeKeyCheck(t, data, "trace.attribute.localInt64Slice")
 	attributeKeyCheck(t, data, "trace.attribute.localFloat64Slice")
 	attributeKeyCheck(t, data, "trace.attribute.localStringSlice")
+}
+
+func FuzzAddTracingContextWithAttributes(f *testing.F) {
+	f.Add("value", 42.0, int64(42), true, int64(42), 42.0, "test", "value")
+	f.Add("test_value", 2.2, int64(4242), false, int64(10), 2.1001, "15", "@$#!")
+
+	f.Fuzz(func(t *testing.T, s string, lf float64, li int64, bs bool, is int64, fs float64, s1 string, s2 string) {
+		SetLogOptions(WithAttributes(attribute.String("test", s)))
+		localAttributes := []attribute.KeyValue{
+			attribute.Float64("localFloat64", lf),
+			attribute.Int64("localInt64", li),
+			attribute.BoolSlice("localBoolSlice", []bool{bs}),
+			attribute.Int64Slice("localInt64Slice", []int64{is, li}),
+			attribute.Float64Slice("localFloat64Slice", []float64{fs}),
+			attribute.StringSlice("localStringSlice", []string{s1, s2, s}),
+		}
+
+		_, span := otel.Tracer("test"+strconv.Itoa(int(rand.Int31n(10000000)))).Start(context.Background(), "serviceName")
+		log.Info().Func(AddTracingContextWithAttributes(span, localAttributes)).Msg("test")
+		// when a log with AddTracingContext is preformed
+		//_ = captureLog(t, func(logger zerolog.Logger) {
+		//})
+		span.End()
+
+		//data := logToMap(t, out)
+
+		//if v, ok := data["trace.attribute.test"].(string); !ok {
+		//	t.Errorf("attribute was not found")
+		//} else {
+		//	if v != s {
+		//		t.Error("the value of the attribute did not match")
+		//	}
+		//}
+
+		//attributeCheck(t, data["trace.attribute.localFloat64"], lf)
+
+		// although the function inject an int64 in the map it's seen as a float64
+		//attributeCheck(t, data["trace.attribute.localInt64"], li)
+
+		//attributeKeyCheck(t, data, "trace.attribute.test")
+		//attributeKeyCheck(t, data, "trace.attribute.localFloat64")
+		//attributeKeyCheck(t, data, "trace.attribute.localInt64")
+		//attributeKeyCheck(t, data, "trace.attribute.localBoolSlice")
+		//attributeKeyCheck(t, data, "trace.attribute.localInt64Slice")
+		//attributeKeyCheck(t, data, "trace.attribute.localFloat64Slice")
+		//attributeKeyCheck(t, data, "trace.attribute.localStringSlice")
+
+	})
 }
 
 func TestLogWithError(t *testing.T) {

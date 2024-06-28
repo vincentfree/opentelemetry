@@ -27,18 +27,20 @@ import (
 )
 
 func ExampleAddTracingContext() {
+	ctx := context.TODO()
 	tracer := otel.Tracer("otelslog/example")
 	_, span := tracer.Start(context.Background(), "example-span")
 
 	// pass span to AddTracingContext
-	slog.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContext(span)...)
+	slog.LogAttrs(ctx, slog.LevelInfo, "in case of a success", otelslog.AddTracingContext(span)...)
 
 	// or in the case of an error
 	err := errors.New("example error")
-	slog.LogAttrs(nil, slog.LevelError, "in case of a failure", otelslog.AddTracingContext(span, err)...)
+	slog.LogAttrs(ctx, slog.LevelError, "in case of a failure", otelslog.AddTracingContext(span, err)...)
 }
 
 func ExampleAddTracingContextWithAttributes() {
+	ctx := context.TODO()
 	tracer := otel.Tracer("otelslog/example")
 	_, span := tracer.Start(context.Background(), "example-span")
 
@@ -48,11 +50,11 @@ func ExampleAddTracingContextWithAttributes() {
 	}
 
 	// pass span to AddTracingContext
-	slog.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContextWithAttributes(span, attributes)...)
+	slog.LogAttrs(ctx, slog.LevelInfo, "in case of a success", otelslog.AddTracingContextWithAttributes(span, attributes)...)
 
 	// or in the case of an error
 	err := errors.New("example error")
-	slog.LogAttrs(nil, slog.LevelError, "in case of a failure", otelslog.AddTracingContextWithAttributes(span, attributes, err)...)
+	slog.LogAttrs(ctx, slog.LevelError, "in case of a failure", otelslog.AddTracingContextWithAttributes(span, attributes, err)...)
 }
 
 func ExampleWithAttributes() {
