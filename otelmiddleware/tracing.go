@@ -76,7 +76,7 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 				trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(r.Host, extractRoute(r.RequestURI), r)...),
 				trace.WithAttributes(semconv.HTTPClientAttributesFromHTTPRequest(r)...),
 				trace.WithAttributes(semconv.TelemetrySDKLanguageGo),
-				trace.WithSpanKind(trace.SpanKindClient),
+				trace.WithSpanKind(trace.SpanKindServer),
 			}
 			// check for the traceConfig.attributes if present apply them to the trace.Span.
 			if len(config.attributes) > 0 {
