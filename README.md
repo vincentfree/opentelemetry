@@ -34,3 +34,20 @@ BenchmarkZerologTraceWithAttr-10      1254688       952.4 ns/op      312 B/op   
 ```
 
 > pre Go 1.21(slog was based on the golang.org/x/exp version not log/slog)
+
+
+### Release process
+
+Update VERSIONS.md file, increase number accordingly. Create a release tag using the following command
+
+```shell
+git tag -a otelslog/v0.0.0 -sm 'message'
+git push -S origin otelslog/v0.1.0
+```
+For any other submodule replace the `otelslog` name with the right subproject name.
+
+When the tag is pushed the proxy can be triggered to update as follows
+
+```shell
+curl https://proxy.golang.org/github.com/vincentfree/opentelemetry/otelzerolog/@v/v0.0.0.info
+```
