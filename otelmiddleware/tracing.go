@@ -25,7 +25,7 @@ import (
 )
 
 // version is used as the instrumentation version.
-const version = "0.0.8"
+const version = "0.0.11"
 
 // TraceOption takes a traceConfig struct and applies changes.
 // It can be passed to the TraceWithOptions function to configure a traceConfig struct.
