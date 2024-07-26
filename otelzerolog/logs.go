@@ -16,9 +16,13 @@ package otelzerolog
 
 import (
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	otelzlog "go.opentelemetry.io/contrib/bridges/otelzerolog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/log/noop"
 	"go.opentelemetry.io/otel/trace"
+	"os"
 	"strings"
 )
 
@@ -32,6 +36,9 @@ type logConfig struct {
 	traceId         string
 	spanId          string
 	attributePrefix string
+	hook            *otelzlog.Hook
+	zeroLogFeatures []func(zerolog.Context) zerolog.Context
+	bridgeDisabled  bool
 }
 
 var (
@@ -48,8 +55,32 @@ var (
 	_attrPrefix = "trace.attribute"
 )
 
+type LogOptions []LogOption
+
 // SetLogOptions takes LogOption's and overwrites library defaults
+//
+// Deprecated: due to naming, replaced by SetGlobalLogger and New.
+// SetGlobalLogger is a direct replacement while New returns a zerolog.Logger with the same configuration.
 func SetLogOptions(options ...LogOption) {
+	SetGlobalLogger(options...)
+}
+
+// SetGlobalLogger sets the global logger for the library, using the provided LogOption entries.
+//
+// This function initializes a new logger using the LogOptions provided,
+// and sets it as the global zerolog logger in the log package.
+// The LogOptions allow you to customize various aspects of the logger, such as the service name,
+// trace and span ID names in the log entry, the attribute prefix, and zero log features like appending timestamps,
+// setting the caller, etc.
+func SetGlobalLogger(options ...LogOption) {
+	logger := initLogger(options)
+	log.Logger = logger
+}
+
+// initLogger initializes and configures a zerolog.Logger based on the provided LogOptions.
+// It applies the LogOptions to a logConfig struct, which holds various configuration parameters.
+// The logger is finally returned and can be used for logging.
+func initLogger(options LogOptions) zerolog.Logger {
 	// initialize an empty logConfig
 	config := &logConfig{}
 
@@ -62,7 +93,7 @@ func SetLogOptions(options ...LogOption) {
 	}
 
 	if config.spanId != "" {
-		_traceId = config.spanId
+		_spanId = config.spanId
 	}
 
 	if config.serviceName != "" {
@@ -77,6 +108,38 @@ func SetLogOptions(options ...LogOption) {
 	if len(config.attributes) > 0 {
 		_attributes = append(_attributes, config.attributes...)
 	}
+
+	if config.hook == nil && !config.bridgeDisabled {
+		var name string
+		if config.serviceName != "" {
+			name = config.serviceName
+		} else {
+			name = "myApp"
+		}
+		config.hook = otelzlog.NewHook(name, otelzlog.WithLoggerProvider(noop.NewLoggerProvider()))
+	}
+
+	logger := zerolog.New(os.Stdout).With().Logger()
+
+	if !config.bridgeDisabled {
+		logger = logger.Hook(config.hook)
+	}
+
+	if len(config.zeroLogFeatures) != 0 {
+		for _, feature := range config.zeroLogFeatures {
+			logger = feature(logger.With()).Logger()
+		}
+	}
+
+	return logger
+}
+
+// New returns a zerolog.Logger configured with the provided LogOptions.
+//
+// The LogOptions are applied to a logConfig struct, which holds various configuration parameters.
+// The logger is finally returned and can be used for logging.
+func New(options ...LogOption) zerolog.Logger {
+	return initLogger(options)
 }
 
 // WithTraceID overwrites the default 'traceID' field in the structured logs with your own key
@@ -160,8 +223,8 @@ func AddTracingContextWithAttributes(span trace.Span, attributes []attribute.Key
 					e.Floats64(_attrPrefix+"."+string(attr.Key), attr.Value.AsFloat64Slice())
 				case attribute.STRINGSLICE:
 					e.Strs(_attrPrefix+"."+string(attr.Key), attr.Value.AsStringSlice())
-                default:
-                    e.Any(_attrPrefix+"."+string(attr.Key), attr.Value.AsInterface())
+				default:
+					e.Any(_attrPrefix+"."+string(attr.Key), attr.Value.AsInterface())
 				}
 			}
 		}
