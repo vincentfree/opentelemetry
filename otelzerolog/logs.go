@@ -160,6 +160,8 @@ func AddTracingContextWithAttributes(span trace.Span, attributes []attribute.Key
 					e.Floats64(_attrPrefix+"."+string(attr.Key), attr.Value.AsFloat64Slice())
 				case attribute.STRINGSLICE:
 					e.Strs(_attrPrefix+"."+string(attr.Key), attr.Value.AsStringSlice())
+                default:
+                    e.Any(_attrPrefix+"."+string(attr.Key), attr.Value.AsInterface())
 				}
 			}
 		}
