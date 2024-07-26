@@ -46,7 +46,7 @@ git push origin otelslog/v0.1.0
 ```
 For any other submodule replace the `otelslog` name with the right subproject name.
 
-When the tag is pushed the proxy can be triggered to update as follows
+When the tag is pushed, the proxy can be triggered to update as follows
 
 ```shell
 curl https://proxy.golang.org/github.com/vincentfree/opentelemetry/otelzerolog/@v/v0.0.0.info
