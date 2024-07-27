@@ -41,21 +41,40 @@ type logConfig struct {
 	bridgeDisabled  bool
 }
 
-var (
+type Logger struct {
+	zerolog.Logger
 	// _traceId has a default trace ID key in the logs
-	_traceId = "traceID"
+	defaultTraceId string
 	// _spanId has a default span ID key in the logs
-	_spanId = "spanID"
+	defaultSpanId string
 	// _serviceName is empty by default, when no value is set the service name won't be used with a default in the logs
-	_serviceName string
+	defaultServiceName string
 	// _attributes contains a global set of attribute.KeyValue's that will be added to very structured log. when the slice is empty they won't be added
-	_attributes = []attribute.KeyValue(nil)
-
+	defaultAttributes []attribute.KeyValue
 	// _attrPrefix x
-	_attrPrefix = "trace.attribute"
+	defaultAttrPrefix string
+}
+
+func defaultLogger() Logger {
+	logger := Logger{}
+	logger.Logger = log.Logger
+	logger.defaultTraceId = "traceID"
+	logger.defaultSpanId = "spanID"
+	logger.defaultAttrPrefix = "trace.attribute"
+	return logger
+}
+
+var (
+	_logger     = defaultLogger()
+	emptyLogger = Logger{}
 )
 
 type LogOptions []LogOption
+
+func AsOtelLogger(logger zerolog.Logger) Logger {
+	_logger.Logger = logger
+	return _logger
+}
 
 // SetLogOptions takes LogOption's and overwrites library defaults
 //
@@ -69,44 +88,49 @@ func SetLogOptions(options ...LogOption) {
 //
 // This function initializes a new logger using the LogOptions provided,
 // and sets it as the global zerolog logger in the log package.
+//
+//	This functionality serves as a backwards compatible feature to how this library worked prior to version 0.1.0,
+//	Please use the New function and use the logger provided to make use of all of its features.
+//
 // The LogOptions allow you to customize various aspects of the logger, such as the service name,
 // trace and span ID names in the log entry, the attribute prefix, and zero log features like appending timestamps,
 // setting the caller, etc.
 func SetGlobalLogger(options ...LogOption) {
-	logger := initLogger(options)
-	log.Logger = logger
+	_logger = initLogger(options)
+	log.Logger = _logger.Logger
 }
 
-// initLogger initializes and configures a zerolog.Logger based on the provided LogOptions.
+// initLogger initializes and configures a Logger based on the provided LogOptions.
 // It applies the LogOptions to a logConfig struct, which holds various configuration parameters.
 // The logger is finally returned and can be used for logging.
-func initLogger(options LogOptions) zerolog.Logger {
+func initLogger(options LogOptions) Logger {
 	// initialize an empty logConfig
 	config := &logConfig{}
+	logger := defaultLogger()
 
 	for _, option := range options {
 		option(config)
 	}
 
 	if config.traceId != "" {
-		_traceId = config.traceId
+		logger.defaultTraceId = config.traceId
 	}
 
 	if config.spanId != "" {
-		_spanId = config.spanId
+		logger.defaultSpanId = config.spanId
 	}
 
 	if config.serviceName != "" {
-		_serviceName = config.serviceName
+		logger.defaultServiceName = config.serviceName
 	}
 
 	if config.attributePrefix != "" {
 		ap, _ := strings.CutSuffix(config.attributePrefix, ".")
-		_attrPrefix = ap
+		logger.defaultAttrPrefix = ap
 	}
 
 	if len(config.attributes) > 0 {
-		_attributes = append(_attributes, config.attributes...)
+		logger.defaultAttributes = append(logger.defaultAttributes, config.attributes...)
 	}
 
 	if config.hook == nil && !config.bridgeDisabled {
@@ -119,18 +143,18 @@ func initLogger(options LogOptions) zerolog.Logger {
 		config.hook = otelzlog.NewHook(name, otelzlog.WithLoggerProvider(noop.NewLoggerProvider()))
 	}
 
-	logger := zerolog.New(os.Stdout).With().Logger()
+	l := zerolog.New(os.Stdout).With().Logger()
 
 	if !config.bridgeDisabled {
-		logger = logger.Hook(config.hook)
+		l = l.Hook(config.hook)
 	}
 
 	if len(config.zeroLogFeatures) != 0 {
 		for _, feature := range config.zeroLogFeatures {
-			logger = feature(logger.With()).Logger()
+			l = feature(l.With()).Logger()
 		}
 	}
-
+	logger.Logger = l
 	return logger
 }
 
@@ -138,7 +162,7 @@ func initLogger(options LogOptions) zerolog.Logger {
 //
 // The LogOptions are applied to a logConfig struct, which holds various configuration parameters.
 // The logger is finally returned and can be used for logging.
-func New(options ...LogOption) zerolog.Logger {
+func New(options ...LogOption) Logger {
 	return initLogger(options)
 }
 
@@ -180,51 +204,53 @@ func WithAttributes(attributes ...attribute.KeyValue) LogOption {
 }
 
 // AddTracingContext lets you add the trace context to a structured log
-func AddTracingContext(span trace.Span, err ...error) func(event *zerolog.Event) {
+func (l Logger) AddTracingContext(span trace.Span, err ...error) func(event *zerolog.Event) {
 	a := []attribute.KeyValue(nil)
-	return AddTracingContextWithAttributes(span, a, err...)
+	return l.AddTracingContextWithAttributes(span, a, err...)
 }
 
 // AddTracingContextWithAttributes lets you add the trace context to a structured log, including attribute.KeyValue's to extend the log
-func AddTracingContextWithAttributes(span trace.Span, attributes []attribute.KeyValue, err ...error) func(event *zerolog.Event) {
+func (l Logger) AddTracingContextWithAttributes(span trace.Span, attributes []attribute.KeyValue, err ...error) func(event *zerolog.Event) {
 	return func(event *zerolog.Event) {
+
 		if len(err) > 0 {
 			span.RecordError(err[0])
 			span.SetStatus(codes.Error, err[0].Error())
 			event.Err(err[0])
 		}
 
-		e := event.Str(_traceId, span.SpanContext().TraceID().String()).Str(_spanId, span.SpanContext().SpanID().String())
+		e := event.Str(l.defaultTraceId, span.SpanContext().TraceID().String()).Str(l.defaultSpanId, span.SpanContext().SpanID().String())
 		// set service.name if the value isn't empty
-		if _serviceName != "" {
-			e.Str("service.name", _serviceName)
+		if l.defaultServiceName != "" {
+			e.Str("service.name", l.defaultServiceName)
 		}
 
 		attrs := attributes
-		attrs = append(attrs, _attributes...)
+		attrs = append(attrs, l.defaultAttributes...)
 
 		// add attributes when global or passed attributes are > 0
 		if len(attrs) > 0 {
 			for _, attr := range attrs {
 				switch attr.Value.Type() {
 				case attribute.STRING:
-					e.Str(_attrPrefix+"."+string(attr.Key), attr.Value.AsString())
+					e.Str(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsString())
 				case attribute.FLOAT64:
-					e.Float64(_attrPrefix+"."+string(attr.Key), attr.Value.AsFloat64())
+					e.Float64(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsFloat64())
 				case attribute.BOOL:
-					e.Bool(_attrPrefix+"."+string(attr.Key), attr.Value.AsBool())
+					e.Bool(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsBool())
 				case attribute.INT64:
-					e.Int64(_attrPrefix+"."+string(attr.Key), attr.Value.AsInt64())
+					e.Int64(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsInt64())
 				case attribute.BOOLSLICE:
-					e.Bools(_attrPrefix+"."+string(attr.Key), attr.Value.AsBoolSlice())
+					e.Bools(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsBoolSlice())
 				case attribute.INT64SLICE:
-					e.Ints64(_attrPrefix+"."+string(attr.Key), attr.Value.AsInt64Slice())
+					e.Ints64(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsInt64Slice())
 				case attribute.FLOAT64SLICE:
-					e.Floats64(_attrPrefix+"."+string(attr.Key), attr.Value.AsFloat64Slice())
+					e.Floats64(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsFloat64Slice())
 				case attribute.STRINGSLICE:
-					e.Strs(_attrPrefix+"."+string(attr.Key), attr.Value.AsStringSlice())
+					e.Strs(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsStringSlice())
 				default:
-					e.Any(_attrPrefix+"."+string(attr.Key), attr.Value.AsInterface())
+					l.Debug().Caller().Str("attribute_key", string(attr.Key)).Interface("attribute_value", attr.Value).Msg("mapping invalid attribute value")
+					e.Any(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsInterface())
 				}
 			}
 		}
