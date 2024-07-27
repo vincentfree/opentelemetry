@@ -19,3 +19,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 )
+
+retract (
+	v0.1.0
+)
