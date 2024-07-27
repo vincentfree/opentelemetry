@@ -27,7 +27,7 @@ trace.WithAttributes(semconv.EndUserAttributesFromHTTPRequest(r)...),
 trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(r.Host, extractRoute(r.RequestURI), r)...),
 trace.WithAttributes(semconv.HTTPClientAttributesFromHTTPRequest(r)...),
 trace.WithAttributes(semconv.TelemetrySDKLanguageGo),
-trace.WithSpanKind(trace.SpanKindClient),
+trace.WithSpanKind(trace.SpanKindServer),
 }
 ```
 

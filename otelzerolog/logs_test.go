@@ -18,27 +18,31 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 	"io"
 	"os"
+	"strings"
 	"testing"
 )
 
-func TestSetLogOptions(t *testing.T) {
+func TestSetGlobalLogger(t *testing.T) {
 	serviceName := "test-service"
-	SetLogOptions(WithServiceName(serviceName))
+	SetGlobalLogger(WithServiceName(serviceName), WithTraceID("TestID"))
 	_, span := otel.Tracer("test").Start(context.Background(), serviceName)
+	defer span.End()
 
-	out := captureLog(t, func(logger zerolog.Logger) {
-		logger.Info().Func(AddTracingContext(span)).Msg("test")
+	out := captureLog(t, AsOtelLogger(log.Logger), func(logger Logger) {
+		logger.Info().Func(logger.AddTracingContext(span)).Msg("test")
 	})
 
 	data := logToMap(t, out)
 
-	idCheck(t, "traceID", data["traceID"], 32)
+	idCheck(t, "TestID", data["TestID"], 32)
+	//idCheck(t, "traceID", data["traceID"], 32)
 	idCheck(t, "spanID", data["spanID"], 16)
 
 	if v, ok := data["service.name"].(string); ok {
@@ -51,12 +55,12 @@ func TestSetLogOptions(t *testing.T) {
 func TestWithSpanID(t *testing.T) {
 	id := "testSpanID"
 	// given a new span ID name
-	SetLogOptions(WithSpanID(id))
+	logger := New(WithSpanID(id))
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
-	out := captureLog(t, func(logger zerolog.Logger) {
-		logger.Info().Func(AddTracingContext(span)).Msg("test")
+	out := captureLog(t, logger, func(logger Logger) {
+		logger.Info().Func(logger.AddTracingContext(span)).Msg("test")
 	})
 
 	data := logToMap(t, out)
@@ -68,12 +72,12 @@ func TestWithSpanID(t *testing.T) {
 func TestWithTraceID(t *testing.T) {
 	id := "testTraceID"
 	// given a new span ID name
-	SetLogOptions(WithTraceID(id))
+	logger := New(WithTraceID(id))
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
-	out := captureLog(t, func(logger zerolog.Logger) {
-		logger.Info().Func(AddTracingContext(span)).Msg("test")
+	out := captureLog(t, logger, func(logger Logger) {
+		logger.Info().Func(logger.AddTracingContext(span)).Msg("test")
 	})
 
 	data := logToMap(t, out)
@@ -83,12 +87,11 @@ func TestWithTraceID(t *testing.T) {
 }
 
 func TestWithAttributes(t *testing.T) {
-	SetLogOptions(WithAttributes(attribute.String("test", "value"), attribute.Bool("isValid", true)))
-
+	logger := New(WithAttributes(attribute.String("test", "value"), attribute.Bool("isValid", true)))
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
-	out := captureLog(t, func(logger zerolog.Logger) {
-		logger.Info().Func(AddTracingContext(span)).Msg("test")
+	out := captureLog(t, logger, func(logger Logger) {
+		logger.Info().Func(logger.AddTracingContext(span)).Msg("test")
 	})
 
 	data := logToMap(t, out)
@@ -110,12 +113,12 @@ func TestWithAttributes(t *testing.T) {
 }
 
 func TestWithAttributePrefix(t *testing.T) {
-	SetLogOptions(WithAttributes(attribute.String("test", "value")), WithAttributePrefix("testing"))
+	logger := New(WithAttributes(attribute.String("test", "value")), WithAttributePrefix("testing"))
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
-	out := captureLog(t, func(logger zerolog.Logger) {
-		logger.Info().Func(AddTracingContext(span)).Msg("test")
+	out := captureLog(t, logger, func(logger Logger) {
+		logger.Info().Func(logger.AddTracingContext(span)).Msg("test")
 	})
 
 	data := logToMap(t, out)
@@ -129,11 +132,11 @@ func TestWithAttributePrefix(t *testing.T) {
 	}
 
 	// reset prefix
-	SetLogOptions(WithAttributePrefix("trace.attribute"))
+	SetGlobalLogger(WithAttributePrefix("trace.attribute"))
 }
 
 func TestAddTracingContextWithAttributes(t *testing.T) {
-	SetLogOptions(WithAttributes(attribute.String("test", "value")))
+	logger := New(WithAttributes(attribute.String("test", "value")))
 	localAttributes := []attribute.KeyValue{
 		attribute.Float64("localFloat64", 42.0),
 		attribute.Int64("localInt64", 42),
@@ -141,11 +144,15 @@ func TestAddTracingContextWithAttributes(t *testing.T) {
 		attribute.Int64Slice("localInt64Slice", []int64{42}),
 		attribute.Float64Slice("localFloat64Slice", []float64{42.0}),
 		attribute.StringSlice("localStringSlice", []string{"test"}),
+		{
+			Key:   "localInvalid",
+			Value: attribute.Value{},
+		},
 	}
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
-	out := captureLog(t, func(logger zerolog.Logger) {
-		logger.Info().Func(AddTracingContextWithAttributes(span, localAttributes)).Msg("test")
+	out := captureLog(t, logger, func(logger Logger) {
+		logger.Info().Func(logger.AddTracingContextWithAttributes(span, localAttributes)).Msg("test")
 	})
 
 	data := logToMap(t, out)
@@ -167,14 +174,31 @@ func TestAddTracingContextWithAttributes(t *testing.T) {
 	attributeKeyCheck(t, data, "trace.attribute.localInt64Slice")
 	attributeKeyCheck(t, data, "trace.attribute.localFloat64Slice")
 	attributeKeyCheck(t, data, "trace.attribute.localStringSlice")
+
+	attrKeys := []string(nil)
+	for k, _ := range data {
+		if strings.HasPrefix(k, "trace.attribute.") {
+			attrKeys = append(attrKeys, k)
+		}
+	}
+
+	// expect that invalid is filtered out but trace.attribute.test is added so the amount should be the same as the original list
+	if len(attrKeys) != len(localAttributes) {
+		t.Errorf("unexpected amount of attributes found: %v", attrKeys)
+	}
+
+	if slices.Contains(attrKeys, "trace.attribute.localInvalid") {
+		t.Errorf("the invalid attribute was found in the list: %v", attrKeys)
+	}
+
 }
 
 func TestLogWithError(t *testing.T) {
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
 	err := errors.New("error")
-	out := captureLog(t, func(logger zerolog.Logger) {
-		logger.Info().Func(AddTracingContext(span, err)).Msg("test")
+	out := captureLog(t, Logger{Logger: log.Logger}, func(logger Logger) {
+		logger.Info().Func(logger.AddTracingContext(span, err)).Msg("test")
 	})
 
 	data := logToMap(t, out)
@@ -200,11 +224,12 @@ func attributeKeyCheck(t *testing.T, data map[string]any, field string) {
 	}
 }
 
-func captureLog(t *testing.T, fn func(logger zerolog.Logger)) []byte {
+func captureLog(t *testing.T, logger Logger, fn func(logger Logger)) []byte {
 	rescueStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	logger := zerolog.New(w)
+	logger.Logger = logger.Output(w)
+	//logger := zerolog.New(w)
 	fn(logger)
 	err := w.Close()
 	if err != nil {

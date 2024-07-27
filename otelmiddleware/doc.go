@@ -18,7 +18,7 @@ Package otelmiddleware provides middleware for wrapping http.Server handlers wit
 The trace.Span is decorated with standard metadata extracted from the http.Request injected into the middleware.
 the basic information is extracted using the OpenTelemetry semconv package.
 
-When a span gets initialized it uses the following slice of trace.SpanStartOption
+When a span gets initialized, it uses the following slice of trace.SpanStartOption
 
 	opts := []trace.SpanStartOption{
 		trace.WithAttributes(semconv.NetAttributesFromHTTPRequest("tcp", request)...),
@@ -29,7 +29,7 @@ When a span gets initialized it uses the following slice of trace.SpanStartOptio
 
 The slice can be extended using the WithAttributes TraceOption function.
 
-After these options are applied a new span is created and the middleware will pass the http.ResponseWriter and http.Request to the next http.Handler.
+After these options are applied, a new span is created and the middleware will pass the http.ResponseWriter and http.Request to the next http.Handler.
 
 Functions
 
