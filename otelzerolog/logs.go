@@ -249,8 +249,10 @@ func (l Logger) AddTracingContextWithAttributes(span trace.Span, attributes []at
 				case attribute.STRINGSLICE:
 					e.Strs(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsStringSlice())
 				default:
-					l.Debug().Caller().Str("attribute_key", string(attr.Key)).Interface("attribute_value", attr.Value).Msg("mapping invalid attribute value")
-					e.Any(l.defaultAttrPrefix+"."+string(attr.Key), attr.Value.AsInterface())
+					if attr.Value.Type() != attribute.INVALID {
+						l.Debug().Caller().Str("attribute_key", string(attr.Key)).Interface("attribute_value", attr.Value).Msg("invalid attribute value type")
+					}
+					continue
 				}
 			}
 		}

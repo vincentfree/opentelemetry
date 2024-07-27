@@ -22,8 +22,10 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 	"io"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -172,6 +174,23 @@ func TestAddTracingContextWithAttributes(t *testing.T) {
 	attributeKeyCheck(t, data, "trace.attribute.localInt64Slice")
 	attributeKeyCheck(t, data, "trace.attribute.localFloat64Slice")
 	attributeKeyCheck(t, data, "trace.attribute.localStringSlice")
+
+	attrKeys := []string(nil)
+	for k, _ := range data {
+		if strings.HasPrefix(k, "trace.attribute.") {
+			attrKeys = append(attrKeys, k)
+		}
+	}
+
+	// expect that invalid is filtered out but trace.attribute.test is added so the amount should be the same as the original list
+	if len(attrKeys) != len(localAttributes) {
+		t.Errorf("unexpected amount of attributes found: %v", attrKeys)
+	}
+
+	if slices.Contains(attrKeys, "trace.attribute.localInvalid") {
+		t.Errorf("the invalid attribute was found in the list: %v", attrKeys)
+	}
+
 }
 
 func TestLogWithError(t *testing.T) {
