@@ -24,7 +24,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log/noop"
-	"os"
 )
 
 func ExampleLogger_AddTracingContext() {
@@ -40,7 +39,6 @@ func ExampleLogger_AddTracingContext() {
 
 	// Output: {"level":"info","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","message":"in case of a success"}
 	// {"level":"error","error":"example error","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","message":"in case of a failure"}
-	reset()
 }
 
 func ExampleLogger_AddTracingContextWithAttributes() {
@@ -61,7 +59,6 @@ func ExampleLogger_AddTracingContextWithAttributes() {
 
 	// Output: {"level":"info","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.exampleKey":"exampleValue","trace.attribute.isValid":true,"message":"in case of a success"}
 	// {"level":"error","error":"example error","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.exampleKey":"exampleValue","trace.attribute.isValid":true,"message":"in case of a failure"}
-	reset()
 }
 
 func ExampleWithAttributes() {
@@ -77,7 +74,6 @@ func ExampleWithAttributes() {
 	logger.Error().Func(logger.AddTracingContext(span, err)).Msg("in case of a failure")
 	// Output: {"level":"info","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.test":"value","trace.attribute.isValid":true,"message":"in case of a success"}
 	// {"level":"error","error":"example error","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.test":"value","trace.attribute.isValid":true,"message":"in case of a failure"}
-	reset()
 }
 
 func ExampleWithAttributePrefix() {
@@ -92,8 +88,6 @@ func ExampleWithAttributePrefix() {
 		})).
 		Msg("success")
 	// Output: {"level":"info","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","example-test.example":"value","message":"success"}
-	reset()
-	logger = otelzerolog.New()
 }
 
 func ExampleWithServiceName() {
@@ -105,8 +99,6 @@ func ExampleWithServiceName() {
 	defer span.End()
 	logger.Info().Func(logger.AddTracingContext(span)).Msg("successful message")
 	// Output: {"level":"info","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","service.name":"example-service","message":"successful message"}
-	reset()
-
 }
 
 func ExampleWithSpanID() {
@@ -119,7 +111,6 @@ func ExampleWithSpanID() {
 
 	logger.Info().Func(logger.AddTracingContext(span)).Msg("successful message")
 	// Output: {"level":"info","traceID":"00000000000000000000000000000000","span-id":"0000000000000000","message":"successful message"}
-	reset()
 }
 
 func ExampleWithTraceID() {
@@ -132,28 +123,24 @@ func ExampleWithTraceID() {
 
 	logger.Info().Func(logger.AddTracingContext(span)).Msg("successful message")
 	// Output: {"level":"info","trace-id":"00000000000000000000000000000000","spanID":"0000000000000000","message":"successful message"}
-	reset()
 }
 
 func ExampleWithZeroLogFeatures() {
 	otelzerolog.SetGlobalLogger(otelzerolog.WithZeroLogFeatures(zerolog.Context.Stack))
 	log.Info().Msg("successful message")
 	// Output: {"level":"info","message":"successful message"}
-	reset()
 }
 
 func ExampleWithOtelBridgeDisabled() {
 	logger := otelzerolog.New(otelzerolog.WithOtelBridgeDisabled())
 	logger.Info().Msg("successful message")
 	// Output: {"level":"info","message":"successful message"}
-	reset()
 }
 
 func ExampleWithOtelBridge() {
 	logger := otelzerolog.New(otelzerolog.WithOtelBridge("example", otelzlog.WithVersion("v0.0.1"), otelzlog.WithLoggerProvider(noop.NewLoggerProvider())))
 	logger.Info().Msg("successful message")
 	// Output: {"level":"info","message":"successful message"}
-	reset()
 }
 
 func ExampleNew() {
@@ -162,14 +149,12 @@ func ExampleNew() {
 	logger = otelzerolog.New(otelzerolog.WithServiceName("example-service"))
 	logger.Info().Msg("successful message")
 	// Output: {"level":"info","message":"successful message"}
-	reset()
 }
 
 func ExampleSetLogOptions() {
 	otelzerolog.SetLogOptions(otelzerolog.WithServiceName("example-service"))
 	log.Info().Msg("successful message")
 	// Output: {"level":"info","message":"successful message"}
-	reset()
 }
 
 func ExampleSetGlobalLogger() {
@@ -191,9 +176,4 @@ func ExampleSetGlobalLogger() {
 	log.Error().Func(otelzerolog.AsOtelLogger(log.Logger).AddTracingContext(span, err)).Msg("in case of a failure")
 	// Output: {"level":"info","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.test":"value","trace.attribute.isValid":true,"message":"in case of a success"}
 	// {"level":"error","error":"example error","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.test":"value","trace.attribute.isValid":true,"message":"in case of a failure"}
-	reset()
-}
-
-func reset() {
-	log.Logger = zerolog.New(os.Stderr).With().Timestamp().Logger()
 }
