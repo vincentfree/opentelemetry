@@ -42,7 +42,7 @@ Update VERSIONS.md file, increase number accordingly. Create a release tag using
 
 ```shell
 git tag -a otelslog/v0.0.0 -sm 'message'
-git push origin otelslog/v0.1.0
+git push origin otelslog/v0.0.0
 ```
 For any other submodule replace the `otelslog` name with the right subproject name.
 
