@@ -17,7 +17,6 @@ package otelslog_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/vincentfree/opentelemetry/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -158,6 +157,8 @@ func ExampleNewWithHandler() {
 }
 
 func ExampleConvertToSlogFormat() {
+
+	logger := otelslog.New(otelslog.WithProvidedHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{})))
 	attributes := []attribute.KeyValue{
 		attribute.String("stringExample", "this is an example string"),
 		attribute.Float64("float64Example", 42.0),
@@ -169,6 +170,7 @@ func ExampleConvertToSlogFormat() {
 		attribute.StringSlice("stringSliceExample", []string{"test", "values"}),
 	}
 	attrs := []slog.Attr{slog.String("init", "attr")}
-	attrs = otelslog.ConvertToSlogFormat(attributes, attrs)
-	fmt.Println(attrs)
+	attrs = append(attrs, logger.ConvertToSlogFormat(attributes)...)
+	logger.LogAttrs(nil, slog.LevelInfo, "test", attrs...)
+	// Output: {}
 }

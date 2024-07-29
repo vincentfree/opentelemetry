@@ -65,8 +65,7 @@ func defaultLogger() Logger {
 }
 
 var (
-	_logger     = defaultLogger()
-	emptyLogger = Logger{}
+	_logger = defaultLogger()
 )
 
 type LogOptions []LogOption
