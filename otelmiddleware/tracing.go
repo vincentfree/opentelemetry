@@ -15,6 +15,7 @@
 package otelmiddleware
 
 import (
+	"go.opentelemetry.io/otel/codes"
 	"net/http"
 
 	"go.opentelemetry.io/otel"
@@ -110,7 +111,11 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 			next.ServeHTTP(wrapperRes, r)
 			// add the response status code to the span
 			if span.IsRecording() {
-				span.SetAttributes(semconv.HTTPAttributesFromHTTPStatusCode(wrapperRes.Status())...)
+				statusCode := wrapperRes.Status()
+				span.SetAttributes(semconv.HTTPAttributesFromHTTPStatusCode(statusCode)...)
+				if statusCode >= 500 {
+					span.SetStatus(codes.Error, http.StatusText(statusCode))
+				}
 			}
 		}
 
