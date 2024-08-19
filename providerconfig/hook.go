@@ -1,4 +1,4 @@
-package internal
+package providerconfig
 
 type SignalHookName string
 
@@ -8,9 +8,10 @@ const (
 	logHook    SignalHookName = "log"
 )
 
-type ShutdownHooks map[SignalHookName]func()
+type ShutdownHook func()
+type ShutdownHooks map[SignalHookName]ShutdownHook
 
-func NewShutdownHooks(fns ...func() (SignalHookName, func())) ShutdownHooks {
+func NewShutdownHooks(fns ...func() (SignalHookName, ShutdownHook)) ShutdownHooks {
 	sdh := make(ShutdownHooks, len(fns))
 	for _, fn := range fns {
 		name, hook := fn()
@@ -19,8 +20,8 @@ func NewShutdownHooks(fns ...func() (SignalHookName, func())) ShutdownHooks {
 	return sdh
 }
 
-func ShutDownPair(name SignalHookName, fn func()) func() (SignalHookName, func()) {
-	return func() (SignalHookName, func()) {
+func ShutDownPair(name SignalHookName, fn ShutdownHook) func() (SignalHookName, ShutdownHook) {
+	return func() (SignalHookName, ShutdownHook) {
 		return name, fn
 	}
 }
