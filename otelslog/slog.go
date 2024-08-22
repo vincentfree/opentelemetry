@@ -86,6 +86,7 @@ var (
 //)
 
 // SetLogOptions takes LogOption's and overwrites library defaults
+// Deprecated: Prefer the use of Logger by using the New function over setting the default logger using slog.SetDefault
 func SetLogOptions(options ...LogOption) {
 	_logger = initLogger(options)
 	slog.SetDefault(_logger.Logger)
@@ -139,6 +140,8 @@ func initLogger(options []LogOption) *Logger {
 		}
 
 	}
+
+	_logger = logger
 
 	return logger
 }
@@ -325,7 +328,8 @@ func handleError(span trace.Span, err []error, result []slog.Attr) []slog.Attr {
 // New initializes a new Logger instance with the provided LogOptions.
 // The Logger struct contains a wrapped slog.Logger, along with default configuration for trace and span IDs,
 // service name, and default attributes.
-// The options parameter takes any number of LogOptions, which are functions that modify the default settings for the logger.
+// The option parameter takes any number of LogOptions,
+// which are functions that modify the default settings for the logger.
 func New(options ...LogOption) *Logger {
 	return initLogger(options)
 }
@@ -334,11 +338,11 @@ func New(options ...LogOption) *Logger {
 // If no handler is provided (i.e., handler is nil), it calls the New() function
 // to create a Logger with the default setup.
 //
-// Deprecated: replaced by option WithOtelBridge, this creates a handler that sends logs to the otel endpoint in the otlp logRecord format.
-//
-//	Instead of NewWithHandler, try using the New function to get a logger with added functionality for appending trace info
+// Deprecated: replaced by New.
+// When paired with option WithOtelBridge,
+// this creates a handler that sends logs to an otel endpoint in the otlp logRecord format.
 func NewWithHandler(handler slog.Handler) *Logger {
-	// If handler is nil, create a default Logger with json logging to standard output
+	// If the handler is nil, create a default Logger with JSON logging to standard output
 	if handler == nil {
 		return New(nil)
 	}
