@@ -158,7 +158,7 @@ func TestWithAttributePrefix(t *testing.T) {
 }
 
 func TestAddTracingContextWithAttributes(t *testing.T) {
-	SetLogOptions(WithAttributes(attribute.String("test", "value")))
+	SetLogOptions()
 	localAttributes := []attribute.KeyValue{
 		attribute.Float64("localFloat64", 42.0),
 		attribute.Int64("localInt64", 42),
@@ -171,7 +171,7 @@ func TestAddTracingContextWithAttributes(t *testing.T) {
 	// when a log with AddTracingContext is preformed
 	out := captureWithOtelLogger(t, func(logger *Logger) {
 		logger.WithTracingContextAndAttributes(nil, slog.LevelInfo, "test", span, nil, localAttributes)
-	})
+	}, WithAttributes(attribute.String("test", "value")))
 
 	data := logToMap(t, out)
 
@@ -185,7 +185,7 @@ func TestAddTracingContextWithAttributes(t *testing.T) {
 
 	attributeCheck(t, data["trace.attribute.localFloat64"], 42.0)
 
-	// although the function inject an int64 in the map it's seen as a float64
+	// although the function injects an int64 in the map, it's seen as a float64
 	attributeCheck(t, data["trace.attribute.localInt64"], 42.0)
 
 	attributeKeyCheck(t, data, "trace.attribute.localBoolSlice.0")
@@ -214,9 +214,9 @@ func TestLoggerInit(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	l := New()
+	l := New(WithProvidedHandler(slog.NewJSONHandler(w, nil)))
 	l.Info("New")
-	lh := NewWithHandler(nil)
+	lh := New(WithProvidedHandler(slog.NewJSONHandler(w, nil)))
 	lh.Info("With Handler")
 
 	err := w.Close()
@@ -225,11 +225,11 @@ func TestLoggerInit(t *testing.T) {
 	}
 	scanner := bufio.NewScanner(r)
 	if scanner.Scan(); !strings.Contains(scanner.Text(), `"msg":"New"`) {
-		t.Error("First line should contain \"msg\": \"New\"")
+		t.Errorf("First line should contain \"msg\": \"New\", but got %s", scanner.Text())
 	}
 
 	if scanner.Scan(); !strings.Contains(scanner.Text(), `"msg":"With Handler"`) {
-		t.Error("Second line should contain \"msg\": \"With Handler\"")
+		t.Errorf("Second line should contain \"msg\": \"With Handler\", but got %s", scanner.Text())
 	}
 
 	os.Stdout = rescueStdout
@@ -296,11 +296,11 @@ func captureLog(t *testing.T, fn func(logger *slog.Logger)) []byte {
 	return out
 }
 
-func captureWithOtelLogger(t *testing.T, fn func(logger *Logger)) []byte {
+func captureWithOtelLogger(t *testing.T, fn func(logger *Logger), logOptions ...LogOption) []byte {
 	rescueStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	logger := NewWithHandler(slog.NewJSONHandler(w, nil))
+	logger := New(append(logOptions, WithProvidedHandler(slog.NewJSONHandler(w, nil)))...)
 	fn(logger)
 	err := w.Close()
 	if err != nil {
