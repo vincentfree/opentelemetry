@@ -20,6 +20,7 @@ import (
 	"github.com/vincentfree/opentelemetry/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace/noop"
 	"log/slog"
 	"math"
 	"os"
@@ -79,23 +80,27 @@ func ExampleWithAttributes() {
 }
 
 func ExampleWithAttributePrefix() {
-	otelslog.New(otelslog.WithAttributePrefix("prefix"))
-	// use AddTracingContext or AddTracingContextWithAttributes
+	logger := otelslog.New(otelslog.WithAttributePrefix("example"), otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)))
+	logger.WithTracingContextAndAttributes(nil, slog.LevelInfo, "WithAttributePrefix", noop.Span{}, nil, []attribute.KeyValue{attribute.Bool("isExample", true)})
+	// Output: level=INFO msg=WithAttributePrefix traceID=00000000000000000000000000000000 spanID=0000000000000000 example.isExample=true
 }
 
 func ExampleWithServiceName() {
-	otelslog.New(otelslog.WithServiceName("example-service"))
-	// use AddTracingContext or AddTracingContextWithAttributes
+	logger := otelslog.New(otelslog.WithServiceName("example-service"), otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)))
+	logger.WithTracingContext(nil, slog.LevelInfo, "WithServiceName", noop.Span{}, nil)
+	// Output: level=INFO msg=WithServiceName traceID=00000000000000000000000000000000 spanID=0000000000000000 service.name=example-service
 }
 
 func ExampleWithSpanID() {
-	otelslog.New(otelslog.WithSpanID("span-id"))
-	// use AddTracingContext or AddTracingContextWithAttributes
+	logger := otelslog.New(otelslog.WithSpanID("example-span-id"), otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)))
+	logger.WithTracingContext(nil, slog.LevelInfo, "WithSpanID", noop.Span{}, nil)
+	// Output: level=INFO msg=WithSpanID traceID=00000000000000000000000000000000 example-span-id=0000000000000000
 }
 
 func ExampleWithTraceID() {
-	otelslog.New(otelslog.WithTraceID("trace-id"))
-	// use AddTracingContext or AddTracingContextWithAttributes
+	logger := otelslog.New(otelslog.WithTraceID("example-trace-id"), otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)))
+	logger.WithTracingContext(nil, slog.LevelInfo, "WithTraceID", noop.Span{}, nil)
+	// Output: level=INFO msg=WithTraceID example-trace-id=00000000000000000000000000000000 spanID=0000000000000000
 }
 
 func ExampleSetLogOptions() {
@@ -176,7 +181,7 @@ var timeRemoved = &slog.HandlerOptions{ReplaceAttr: func(groups []string, a slog
 	return a
 }}
 
-func ExampleConvertToSlogFormat() {
+func ExampleLogger_ConvertToSlogFormat() {
 	logger := otelslog.New(otelslog.WithProvidedHandler(slog.NewJSONHandler(os.Stdout, timeRemoved)))
 	attributes := []attribute.KeyValue{
 		attribute.String("stringExample", "this is an example string"),
