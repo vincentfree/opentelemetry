@@ -11,7 +11,7 @@ import (
 	"github.com/vincentfree/opentelemetry/otelzerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"math"
 	"testing"
 )
@@ -116,7 +116,7 @@ func BenchmarkZerologTrace(b *testing.B) {
 	logger := zerolog.New(w)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		logger.Info().Func(otelzerolog.AddTracingContext(span)).Msg("bench")
+		logger.Info().Func(otelzerolog.AsOtelLogger(logger).AddTracingContext(span)).Msg("bench")
 	}
 
 	_ = w.Flush()
@@ -130,7 +130,7 @@ func BenchmarkZerologTraceWithAttr(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		logger.Info().Func(otelzerolog.AddTracingContextWithAttributes(span, attrs)).Msg("bench")
+		logger.Info().Func(otelzerolog.AsOtelLogger(logger).AddTracingContextWithAttributes(span, attrs)).Msg("bench")
 	}
 
 	_ = w.Flush()
