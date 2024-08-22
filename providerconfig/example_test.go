@@ -1,12 +1,26 @@
+// Copyright 2024 Vincent Free
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package providerconfig_test
 
 import (
+	"github.com/vincentfree/opentelemetry/providerconfig"
+	"github.com/vincentfree/opentelemetry/providerconfig/providerconfignoop"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	"providerconfig"
-	"providerconfig/providerconfignoop"
 )
 
 // initializing through main and manually setting the providers.
@@ -16,7 +30,7 @@ import (
 // providerconfig.WithInitMetrics()
 // providerconfig.WithInitLogs()
 func ExampleNew() {
-	otelConfig := providerconfig.New(
+	provider := providerconfig.New(
 		providerconfig.WithApplicationName("example-app"),
 		providerconfig.WithApplicationVersion("0.1.0"),
 		providerconfig.WithExecutionType(providerconfig.Async),
@@ -24,13 +38,13 @@ func ExampleNew() {
 	)
 
 	// traces
-	otel.SetTracerProvider(otelConfig.Providers.TraceProvider)
+	otel.SetTracerProvider(provider.TraceProvider())
 
 	// metrics
-	otel.SetMeterProvider(otelConfig.Providers.MetricProvider)
+	otel.SetMeterProvider(provider.MetricProvider())
 
 	// logs
-	global.SetLoggerProvider(otelConfig.Providers.LogProvider)
+	global.SetLoggerProvider(provider.LogProvider())
 }
 
 func ExampleWithApplicationName() {
@@ -56,30 +70,6 @@ func ExampleWithSignalProcessor() {
 		// Example processor, in a real scenario, the http or grpc processors should be used.
 		// Either is a separate import that needs to be added to the modules
 		providerconfig.WithSignalProcessor(providerconfignoop.NewNoopProcessor()),
-	)
-}
-
-func ExampleWithCollectorProtocol() {
-	providerconfig.New(
-		providerconfig.WithCollectorProtocol(providerconfig.Http),
-	)
-}
-
-func ExampleWithCollectorUrl() {
-	providerconfig.New(
-		providerconfig.WithCollectorUrl("0.0.0.0"),
-	)
-}
-
-func ExampleWithPort() {
-	providerconfig.New(
-		providerconfig.WithPort(8080),
-	)
-}
-
-func ExampleWithProtocolAndPort() {
-	providerconfig.New(
-		providerconfig.WithProtocolAndPort(providerconfig.Grpc, 443),
 	)
 }
 
@@ -110,4 +100,30 @@ func ExampleWithTracePropagator() {
 			),
 		),
 	)
+}
+
+func ExampleProvider_ShutdownAll() {
+	provider := providerconfig.New(
+		providerconfig.WithApplicationName("example-app"),
+		providerconfig.WithApplicationVersion("0.0.1"),
+	)
+
+	// shutdown all the otel providers
+	provider.ShutdownAll()
+}
+
+func ExampleProvider_ShutdownByType() {
+	provider := providerconfig.New(
+		providerconfig.WithApplicationName("example-app"),
+		providerconfig.WithApplicationVersion("0.0.1"),
+	)
+
+	// shutdown just traces
+	provider.ShutdownByType(providerconfig.TraceHook)
+
+	// shutdown just metrics
+	provider.ShutdownByType(providerconfig.MetricHook)
+
+	// shutdown just logs
+	provider.ShutdownByType(providerconfig.LogHook)
 }

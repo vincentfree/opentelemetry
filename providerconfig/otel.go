@@ -1,3 +1,17 @@
+// Copyright 2024 Vincent Free
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package providerconfig
 
 import (
@@ -5,16 +19,13 @@ import (
 	"errors"
 	prommetric "go.opentelemetry.io/contrib/bridges/prometheus"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"go.opentelemetry.io/otel/trace"
 	"log/slog"
 	"os"
 )
@@ -24,17 +35,6 @@ var (
 	httpPort = 4318
 	logger   = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelError}))
 )
-
-type OtelConfig struct {
-	Providers *Providers `yaml:"providers"`
-}
-
-type Providers struct {
-	traceProvider  trace.TracerProvider
-	metricProvider metric.MeterProvider
-	logProvider    log.LoggerProvider
-	hooks          ShutdownHooks
-}
 
 type Option func(*config)
 type Options []Option
@@ -175,8 +175,8 @@ func WithDisabledSignals(disableTraces, disableMetrics, disableLogs bool) Option
 // actually used by the end user.
 //
 // The implementations can be found in the packages:
-//   - providerconfiggrpc
-//   - providerconfighttp
+//   - github.com/vincentfree/opentelemetry/providerconfiggrpc
+//   - github.com/vincentfree/opentelemetry/providerconfighttp
 //
 // Both packages contain a new function with their respective options.
 func WithSignalProcessor(signalProcessor SignalProcessor) Option {
@@ -211,7 +211,7 @@ func initConfig(options Options) *config {
 	return cfg
 }
 
-func NewResource(applicationName, applicationVersion string, resources ...resource.Option) *resource.Resource {
+func newResource(applicationName, applicationVersion string, resources ...resource.Option) *resource.Resource {
 	resList := make([]resource.Option, len(resources))
 	resList = append(resList, resources...)
 	resList = append(resList, resource.WithAttributes(
@@ -234,11 +234,18 @@ func NewResource(applicationName, applicationVersion string, resources ...resour
 //
 // Although the function does not specify required Options,
 // WithApplicationName and WithApplicationVersion are required.
-func New(options ...Option) *OtelConfig {
+//
+// Next to Application information, WithSignalProcessor is also required.
+// There are two external modules that provide implementations, one fork gRPC and one for HTTP.
+//
+// The implementations can be found in these packages:
+//   - github.com/vincentfree/opentelemetry/providerconfiggrpc
+//   - github.com/vincentfree/opentelemetry/providerconfighttp
+func New(options ...Option) Provider {
 	ctx := context.Background()
 	cfg := initConfig(options)
 
-	res := NewResource(cfg.applicationName, cfg.applicationVersion, cfg.resourceOptions...)
+	res := newResource(cfg.applicationName, cfg.applicationVersion, cfg.resourceOptions...)
 
 	// Register the trace exporter with a TracerProvider, using a batch
 	// span processor to aggregate spans before export.
@@ -298,37 +305,15 @@ func New(options ...Option) *OtelConfig {
 	hooks := NewShutdownHooks(
 		ShutDownPair(TraceHook, traceProviderHook(ctx, tracerProvider)),
 		ShutDownPair(MetricHook, metricProviderHook(ctx, meterProvider)),
-		ShutDownPair(logHook, logProviderHook(ctx, logProvider)),
+		ShutDownPair(LogHook, logProviderHook(ctx, logProvider)),
 	)
 
-	return &OtelConfig{
-		Providers: &Providers{
-			traceProvider:  tracerProvider,
-			metricProvider: meterProvider,
-			logProvider:    logProvider,
-			hooks:          hooks,
-		},
+	return &providers{
+		traceProvider:  tracerProvider,
+		metricProvider: meterProvider,
+		logProvider:    logProvider,
+		hooks:          hooks,
 	}
-}
-
-func (o OtelConfig) TraceProvider() trace.TracerProvider {
-	return o.Providers.traceProvider
-}
-
-func (o OtelConfig) MetricProvider() metric.MeterProvider {
-	return o.Providers.metricProvider
-}
-
-func (o OtelConfig) LogProvider() log.LoggerProvider {
-	return o.Providers.logProvider
-}
-
-func (o OtelConfig) ShutdownAll() {
-	o.Providers.hooks.ShutdownAll()
-}
-
-func (o OtelConfig) ShutdownByType(signalHookName SignalHookName) {
-	o.Providers.hooks.ShutdownByType(signalHookName)
 }
 
 func handleErr(err error, message string) {
