@@ -76,13 +76,12 @@ func TestSetLogOptions(t *testing.T) {
 func TestWithSpanID(t *testing.T) {
 	id := "testSpanID"
 	// given a new span ID name
-	SetLogOptions(WithSpanID(id))
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
 	out := captureWithOtelLogger(t, func(logger *Logger) {
 		logger.WithTracingContext(nil, slog.LevelInfo, "test", span, nil)
-	})
+	}, WithSpanID(id))
 
 	data := logToMap(t, out)
 	if _, ok := data[id]; !ok {
@@ -93,13 +92,12 @@ func TestWithSpanID(t *testing.T) {
 func TestWithTraceID(t *testing.T) {
 	id := "testTraceID"
 	// given a new span ID name
-	SetLogOptions(WithTraceID(id))
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
 	out := captureWithOtelLogger(t, func(logger *Logger) {
 		logger.WithTracingContext(nil, slog.LevelInfo, "test", span, nil)
-	})
+	}, WithTraceID(id))
 
 	data := logToMap(t, out)
 	if _, ok := data[id]; !ok {
@@ -108,13 +106,12 @@ func TestWithTraceID(t *testing.T) {
 }
 
 func TestWithAttributes(t *testing.T) {
-	SetLogOptions(WithAttributes(attribute.String("test", "value"), attribute.Bool("isValid", true)))
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
 	out := captureWithOtelLogger(t, func(logger *Logger) {
 		logger.WithTracingContext(nil, slog.LevelInfo, "test", span, nil)
-	})
+	}, WithAttributes(attribute.String("test", "value"), attribute.Bool("isValid", true)))
 
 	data := logToMap(t, out)
 
@@ -135,13 +132,12 @@ func TestWithAttributes(t *testing.T) {
 }
 
 func TestWithAttributePrefix(t *testing.T) {
-	SetLogOptions(WithAttributes(attribute.String("test", "value")), WithAttributePrefix("testing"))
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
 	// when a log with AddTracingContext is preformed
 	out := captureWithOtelLogger(t, func(logger *Logger) {
 		logger.WithTracingContext(nil, slog.LevelInfo, "test", span, nil)
-	})
+	}, WithAttributes(attribute.String("test", "value")), WithAttributePrefix("testing"))
 
 	data := logToMap(t, out)
 
