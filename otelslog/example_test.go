@@ -17,10 +17,10 @@ package otelslog_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/vincentfree/opentelemetry/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace/noop"
 	"log/slog"
 	"math"
 	"os"
@@ -29,13 +29,15 @@ import (
 func ExampleAddTracingContext() {
 	tracer := otel.Tracer("otelslog/example")
 	_, span := tracer.Start(context.Background(), "example-span")
-
+	logger := otelslog.New(otelslog.WithProvidedHandler(slog.NewJSONHandler(os.Stdout, timeRemoved)))
 	// pass span to AddTracingContext
-	slog.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContext(span)...)
+	logger.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContext(span)...)
 
 	// or in the case of an error
 	err := errors.New("example error")
-	slog.LogAttrs(nil, slog.LevelError, "in case of a failure", otelslog.AddTracingContext(span, err)...)
+	logger.LogAttrs(nil, slog.LevelError, "in case of a failure", otelslog.AddTracingContext(span, err)...)
+	// Output: {"level":"INFO","msg":"in case of a success","traceID":"00000000000000000000000000000000","spanID":"0000000000000000"}
+	// {"level":"ERROR","msg":"in case of a failure","error":"example error","traceID":"00000000000000000000000000000000","spanID":"0000000000000000"}
 }
 
 func ExampleAddTracingContextWithAttributes() {
@@ -46,48 +48,59 @@ func ExampleAddTracingContextWithAttributes() {
 		attribute.String("exampleKey", "exampleValue"),
 		attribute.Bool("isValid", true),
 	}
+	logger := otelslog.New(otelslog.WithProvidedHandler(slog.NewJSONHandler(os.Stdout, timeRemoved)))
 
 	// pass span to AddTracingContext
-	slog.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContextWithAttributes(span, attributes)...)
+	logger.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContextWithAttributes(span, attributes)...)
 
 	// or in the case of an error
 	err := errors.New("example error")
-	slog.LogAttrs(nil, slog.LevelError, "in case of a failure", otelslog.AddTracingContextWithAttributes(span, attributes, err)...)
+	logger.LogAttrs(nil, slog.LevelError, "in case of a failure", otelslog.AddTracingContextWithAttributes(span, attributes, err)...)
+	// Output: {"level":"INFO","msg":"in case of a success","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.exampleKey":"exampleValue","trace.attribute.isValid":true}
+	// {"level":"ERROR","msg":"in case of a failure","error":"example error","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.exampleKey":"exampleValue","trace.attribute.isValid":true}
 }
 
 func ExampleWithAttributes() {
-	option := otelslog.WithAttributes(attribute.String("test", "value"), attribute.Bool("isValid", true))
-	otelslog.SetLogOptions(option)
+	logger := otelslog.New(
+		otelslog.WithAttributes(attribute.String("test", "value"), attribute.Bool("isValid", true)),
+		otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)),
+	)
 
 	tracer := otel.Tracer("otelslog/example")
 	_, span := tracer.Start(context.Background(), "example-span")
 
 	// pass span to AddTracingContext
-	slog.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContext(span)...)
+	logger.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContext(span)...)
 
 	// or in the case of an error
 	err := errors.New("example error")
-	slog.LogAttrs(nil, slog.LevelError, "in case of a failure", otelslog.AddTracingContext(span, err)...)
+	logger.LogAttrs(nil, slog.LevelError, "in case of a failure", otelslog.AddTracingContext(span, err)...)
+	// Output: level=INFO msg="in case of a success" traceID=00000000000000000000000000000000 spanID=0000000000000000 trace.attribute.test=value trace.attribute.isValid=true
+	// level=ERROR msg="in case of a failure" error="example error" traceID=00000000000000000000000000000000 spanID=0000000000000000 trace.attribute.test=value trace.attribute.isValid=true
 }
 
 func ExampleWithAttributePrefix() {
-	otelslog.SetLogOptions(otelslog.WithAttributePrefix("prefix"))
-	// use AddTracingContext or AddTracingContextWithAttributes
+	logger := otelslog.New(otelslog.WithAttributePrefix("example"), otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)))
+	logger.WithTracingContextAndAttributes(nil, slog.LevelInfo, "WithAttributePrefix", noop.Span{}, nil, []attribute.KeyValue{attribute.Bool("isExample", true)})
+	// Output: level=INFO msg=WithAttributePrefix traceID=00000000000000000000000000000000 spanID=0000000000000000 example.isExample=true
 }
 
 func ExampleWithServiceName() {
-	otelslog.SetLogOptions(otelslog.WithServiceName("example-service"))
-	// use AddTracingContext or AddTracingContextWithAttributes
+	logger := otelslog.New(otelslog.WithServiceName("example-service"), otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)))
+	logger.WithTracingContext(nil, slog.LevelInfo, "WithServiceName", noop.Span{}, nil)
+	// Output: level=INFO msg=WithServiceName traceID=00000000000000000000000000000000 spanID=0000000000000000 service.name=example-service
 }
 
 func ExampleWithSpanID() {
-	otelslog.SetLogOptions(otelslog.WithSpanID("span-id"))
-	// use AddTracingContext or AddTracingContextWithAttributes
+	logger := otelslog.New(otelslog.WithSpanID("example-span-id"), otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)))
+	logger.WithTracingContext(nil, slog.LevelInfo, "WithSpanID", noop.Span{}, nil)
+	// Output: level=INFO msg=WithSpanID traceID=00000000000000000000000000000000 example-span-id=0000000000000000
 }
 
 func ExampleWithTraceID() {
-	otelslog.SetLogOptions(otelslog.WithTraceID("trace-id"))
-	// use AddTracingContext or AddTracingContextWithAttributes
+	logger := otelslog.New(otelslog.WithTraceID("example-trace-id"), otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)))
+	logger.WithTracingContext(nil, slog.LevelInfo, "WithTraceID", noop.Span{}, nil)
+	// Output: level=INFO msg=WithTraceID example-trace-id=00000000000000000000000000000000 spanID=0000000000000000
 }
 
 func ExampleSetLogOptions() {
@@ -98,7 +111,6 @@ func ExampleSetLogOptions() {
 	// set up tracer
 	tracer := otel.Tracer("otelslog/example")
 	_, span := tracer.Start(context.Background(), "example-span")
-
 	// pass span to AddTracingContext
 	slog.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContext(span)...)
 
@@ -111,7 +123,7 @@ func ExampleLogger_WithTracingContext() {
 	tracer := otel.Tracer("otelslog/example")
 	_, span := tracer.Start(context.Background(), "example-span")
 
-	logger := otelslog.New()
+	logger := otelslog.New(otelslog.WithProvidedHandler(slog.NewTextHandler(os.Stdout, timeRemoved)))
 	// pass span to AddTracingContext
 	logger.WithTracingContext(nil, slog.LevelInfo, "in case of a success", span, nil)
 	slog.LogAttrs(nil, slog.LevelInfo, "in case of a success", otelslog.AddTracingContext(span)...)
@@ -119,6 +131,8 @@ func ExampleLogger_WithTracingContext() {
 	// or in the case of an error
 	err := errors.New("example error")
 	logger.WithTracingContext(nil, slog.LevelError, "in case of a failure", span, err)
+	// Output: level=INFO msg="in case of a success" traceID=00000000000000000000000000000000 spanID=0000000000000000
+	// level=ERROR msg="in case of a failure" error="example error" traceID=00000000000000000000000000000000 spanID=0000000000000000
 }
 
 func ExampleLogger_WithTracingContextAndAttributes() {
@@ -130,22 +144,25 @@ func ExampleLogger_WithTracingContextAndAttributes() {
 	tracer := otel.Tracer("otelslog/example")
 	_, span := tracer.Start(context.Background(), "example-span")
 
-	logger := otelslog.New()
+	logger := otelslog.New(otelslog.WithProvidedHandler(slog.NewJSONHandler(os.Stdout, timeRemoved)))
 	// pass span to AddTracingContext
 	logger.WithTracingContextAndAttributes(nil, slog.LevelInfo, "in case of a success", span, nil, attributes)
 
 	// or in the case of an error
 	err := errors.New("example error")
 	logger.WithTracingContextAndAttributes(nil, slog.LevelError, "in case of a failure", span, err, attributes)
+	// Output: {"level":"INFO","msg":"in case of a success","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.exampleKey":"exampleValue","trace.attribute.isValid":true}
+	// {"level":"ERROR","msg":"in case of a failure","error":"example error","traceID":"00000000000000000000000000000000","spanID":"0000000000000000","trace.attribute.exampleKey":"exampleValue","trace.attribute.isValid":true}
 }
 
 func ExampleNew() {
 	tracer := otel.Tracer("otelslog/example")
 	_, span := tracer.Start(context.Background(), "example-span")
 
-	logger := otelslog.New()
+	logger := otelslog.New(otelslog.WithProvidedHandler(slog.NewJSONHandler(os.Stdout, timeRemoved)))
 	// pass span to AddTracingContext
 	logger.WithTracingContext(nil, slog.LevelInfo, "in case of a success", span, nil)
+	// Output: {"level":"INFO","msg":"in case of a success","traceID":"00000000000000000000000000000000","spanID":"0000000000000000"}
 }
 
 func ExampleNewWithHandler() {
@@ -157,7 +174,15 @@ func ExampleNewWithHandler() {
 	logger.WithTracingContext(nil, slog.LevelInfo, "in case of a success", span, nil)
 }
 
-func ExampleConvertToSlogFormat() {
+var timeRemoved = &slog.HandlerOptions{ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+	if a.Key == "time" {
+		return slog.Attr{}
+	}
+	return a
+}}
+
+func ExampleLogger_ConvertToSlogFormat() {
+	logger := otelslog.New(otelslog.WithProvidedHandler(slog.NewJSONHandler(os.Stdout, timeRemoved)))
 	attributes := []attribute.KeyValue{
 		attribute.String("stringExample", "this is an example string"),
 		attribute.Float64("float64Example", 42.0),
@@ -169,6 +194,7 @@ func ExampleConvertToSlogFormat() {
 		attribute.StringSlice("stringSliceExample", []string{"test", "values"}),
 	}
 	attrs := []slog.Attr{slog.String("init", "attr")}
-	attrs = otelslog.ConvertToSlogFormat(attributes, attrs)
-	fmt.Println(attrs)
+	attrs = append(attrs, logger.ConvertToSlogFormat(attributes)...)
+	logger.LogAttrs(nil, slog.LevelInfo, "test", attrs...)
+	// Output: {"level":"INFO","msg":"test","init":"attr","trace.attribute.stringExample":"this is an example string","trace.attribute.float64Example":42,"trace.attribute.int64Example":42,"trace.attribute.boolExample":true,"trace.attribute.boolSliceExample.0":true,"trace.attribute.boolSliceExample.1":false,"trace.attribute.boolSliceExample.2":true,"trace.attribute.int64SliceExample.0":42,"trace.attribute.int64SliceExample.1":9223372036854775807,"trace.attribute.float64SliceExample.0":42,"trace.attribute.float64SliceExample.1":3.141592653589793,"trace.attribute.stringSliceExample.0":"test","trace.attribute.stringSliceExample.1":"values"}
 }
