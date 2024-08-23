@@ -252,9 +252,9 @@ func New(options ...Option) Provider {
 	var bsp sdktrace.SpanProcessor
 	switch cfg.executionType {
 	case Sync:
-		cfg.signalProcessor.SyncTraceProcessor()
+		bsp = cfg.signalProcessor.SyncTraceProcessor()
 	case Async:
-		cfg.signalProcessor.AsyncTraceProcessor()
+		bsp = cfg.signalProcessor.AsyncTraceProcessor()
 	}
 
 	tracerProvider := sdktrace.NewTracerProvider(
@@ -266,9 +266,9 @@ func New(options ...Option) Provider {
 	var logProcessor sdklog.Processor
 	switch cfg.executionType {
 	case Async:
-		cfg.signalProcessor.AsyncLogProcessor()
+		logProcessor = cfg.signalProcessor.AsyncLogProcessor()
 	case Sync:
-		cfg.signalProcessor.SyncLogProcessor()
+		logProcessor = cfg.signalProcessor.SyncLogProcessor()
 	}
 
 	logProvider := sdklog.NewLoggerProvider(
