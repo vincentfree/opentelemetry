@@ -22,6 +22,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
+	"log/slog"
+	"math"
 )
 
 type grpcConfig struct {
@@ -92,7 +94,13 @@ func WithBatchProcessorOptions(options ...log.BatchProcessorOption) Option {
 
 // WithCollectorEndpoint handled by providerconfig.New
 // Has no effect when WithGRPCConn is set for any of the Options
-func WithCollectorEndpoint(url string, port uint16) Option {
+func WithCollectorEndpoint(url string, port int) Option {
+	if port > math.MaxUint16 || port <= 0 {
+		logger.Error("invalid port value in: WithCollectorEndpoint", slog.Uint64("port_range_max", math.MaxUint16), slog.Uint64("port_range_min", 0), slog.Int("port_provided", port))
+		panic("invalid port value in: WithCollectorEndpoint")
+	}
+	logger.Debug("provided collector endpoint", slog.Int("provided_port", port), slog.String("provided_url", url))
+
 	return func(gc *grpcConfig) {
 		if gc.traceOptions == nil || len(gc.traceOptions) == 0 {
 			gc.traceOptions = []otlptracegrpc.Option{otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
