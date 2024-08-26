@@ -40,8 +40,9 @@ func WithTraceOptions(options ...otlptracehttp.Option) Option {
 	return func(gc *httpConfig) {
 		if gc.traceOptions == nil || len(gc.traceOptions) == 0 {
 			gc.traceOptions = options
+		} else {
+			gc.traceOptions = append(gc.traceOptions, options...)
 		}
-		gc.traceOptions = append(gc.traceOptions, options...)
 	}
 }
 
@@ -49,8 +50,9 @@ func WithMetricOptions(options ...otlpmetrichttp.Option) Option {
 	return func(gc *httpConfig) {
 		if gc.metricOptions == nil || len(gc.metricOptions) == 0 {
 			gc.metricOptions = options
+		} else {
+			gc.metricOptions = append(gc.metricOptions, options...)
 		}
-		gc.metricOptions = append(gc.metricOptions, options...)
 	}
 }
 
@@ -58,8 +60,9 @@ func WithLogOptions(options ...otlploghttp.Option) Option {
 	return func(gc *httpConfig) {
 		if gc.logOptions == nil || len(gc.logOptions) == 0 {
 			gc.logOptions = options
+		} else {
+			gc.logOptions = append(gc.logOptions, options...)
 		}
-		gc.logOptions = append(gc.logOptions, options...)
 	}
 }
 
@@ -92,17 +95,20 @@ func WithCollectorEndpoint(url string, port uint16) Option {
 	return func(gc *httpConfig) {
 		if len(gc.traceOptions) == 0 {
 			gc.traceOptions = []otlptracehttp.Option{otlptracehttp.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		} else {
+			gc.traceOptions = append(gc.traceOptions, otlptracehttp.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 		}
-		gc.traceOptions = append(gc.traceOptions, otlptracehttp.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 
 		if len(gc.metricOptions) == 0 {
 			gc.metricOptions = []otlpmetrichttp.Option{otlpmetrichttp.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		} else {
+			gc.metricOptions = append(gc.metricOptions, otlpmetrichttp.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 		}
-		gc.metricOptions = append(gc.metricOptions, otlpmetrichttp.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 
 		if len(gc.logOptions) == 0 {
 			gc.logOptions = []otlploghttp.Option{otlploghttp.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		} else {
+			gc.logOptions = append(gc.logOptions, otlploghttp.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 		}
-		gc.logOptions = append(gc.logOptions, otlploghttp.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 	}
 }
