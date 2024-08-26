@@ -19,10 +19,13 @@ import (
 	"github.com/vincentfree/opentelemetry/providerconfig/providerconfighttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/sdk/log"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
+	"time"
 )
 
 func ExampleNew() {
@@ -48,15 +51,33 @@ func ExampleWithCollectorEndpoint() {
 	)
 }
 
-func ExampleWithTraceOptions() {
-	providerconfighttp.New(
-		providerconfighttp.WithTraceOptions(otlptracehttp.WithCompression(otlptracehttp.GzipCompression)),
-	)
-}
-
 func ExampleWithSpanProcessorOptions() {
 	providerconfighttp.New(
 		providerconfighttp.WithSpanProcessorOptions(trace.WithMaxExportBatchSize(512)),
+	)
+}
+
+func ExampleWithBatchProcessorOptions() {
+	providerconfighttp.New(
+		providerconfighttp.WithBatchProcessorOptions(log.WithExportMaxBatchSize(512)),
+	)
+}
+
+func ExampleWithSimpleProcessorOptions() {
+	providerconfighttp.New(
+		providerconfighttp.WithSimpleProcessorOptions( /*currently there are no options for the simpleProcessor*/ ),
+	)
+}
+
+func ExampleWithPeriodicReaderOptions() {
+	providerconfighttp.New(
+		providerconfighttp.WithPeriodicReaderOptions(metric.WithInterval(5 * time.Second)),
+	)
+}
+
+func ExampleWithTraceOptions() {
+	providerconfighttp.New(
+		providerconfighttp.WithTraceOptions(otlptracehttp.WithCompression(otlptracehttp.GzipCompression)),
 	)
 }
 
@@ -66,8 +87,8 @@ func ExampleWithLogOptions() {
 	)
 }
 
-func ExampleWithBatchProcessorOptions() {
+func ExampleWithMetricOptions() {
 	providerconfighttp.New(
-		providerconfighttp.WithBatchProcessorOptions(log.WithExportMaxBatchSize(512)),
+		providerconfighttp.WithMetricOptions(otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression)),
 	)
 }
