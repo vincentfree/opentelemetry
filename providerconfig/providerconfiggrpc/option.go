@@ -40,8 +40,9 @@ func WithTraceOptions(options ...otlptracegrpc.Option) Option {
 	return func(gc *grpcConfig) {
 		if gc.traceOptions == nil || len(gc.traceOptions) == 0 {
 			gc.traceOptions = options
+		} else {
+			gc.traceOptions = append(gc.traceOptions, options...)
 		}
-		gc.traceOptions = append(gc.traceOptions, options...)
 	}
 }
 
@@ -49,8 +50,9 @@ func WithMetricOptions(options ...otlpmetricgrpc.Option) Option {
 	return func(gc *grpcConfig) {
 		if gc.metricOptions == nil || len(gc.metricOptions) == 0 {
 			gc.metricOptions = options
+		} else {
+			gc.metricOptions = append(gc.metricOptions, options...)
 		}
-		gc.metricOptions = append(gc.metricOptions, options...)
 	}
 }
 
@@ -58,8 +60,9 @@ func WithLogOptions(options ...otlploggrpc.Option) Option {
 	return func(gc *grpcConfig) {
 		if gc.logOptions == nil || len(gc.logOptions) == 0 {
 			gc.logOptions = options
+		} else {
+			gc.logOptions = append(gc.logOptions, options...)
 		}
-		gc.logOptions = append(gc.logOptions, options...)
 	}
 }
 
@@ -93,17 +96,20 @@ func WithCollectorEndpoint(url string, port uint16) Option {
 	return func(gc *grpcConfig) {
 		if gc.traceOptions == nil || len(gc.traceOptions) == 0 {
 			gc.traceOptions = []otlptracegrpc.Option{otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		} else {
+			gc.traceOptions = append(gc.traceOptions, otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 		}
-		gc.traceOptions = append(gc.traceOptions, otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 
 		if gc.metricOptions == nil || len(gc.metricOptions) == 0 {
 			gc.metricOptions = []otlpmetricgrpc.Option{otlpmetricgrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		} else {
+			gc.metricOptions = append(gc.metricOptions, otlpmetricgrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 		}
-		gc.metricOptions = append(gc.metricOptions, otlpmetricgrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 
 		if gc.logOptions == nil || len(gc.logOptions) == 0 {
 			gc.logOptions = []otlploggrpc.Option{otlploggrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		} else {
+			gc.logOptions = append(gc.logOptions, otlploggrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 		}
-		gc.logOptions = append(gc.logOptions, otlploggrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 	}
 }
