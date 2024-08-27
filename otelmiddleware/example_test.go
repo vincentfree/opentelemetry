@@ -34,35 +34,42 @@ var (
 )
 
 func ExampleWithTracer() {
-	// returns a function that excepts a http.Handler.
-	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithTracer(otel.Tracer("example-tracer")))
+	// returns a function that accepts an http.Handler.
+	handler := otelmiddleware.New(otelmiddleware.WithTracer(otel.Tracer("example-tracer")))
 	// pass a http.Handler to extend it with Tracing functionality.
 	http.Handle("/", handler(eh))
 }
 
 func ExampleWithServiceName() {
-	// returns a function that excepts a http.Handler.
-	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithServiceName("exampleService"))
+	// returns a function that accepts an http.Handler.
+	handler := otelmiddleware.New(otelmiddleware.WithServiceName("exampleService"))
 	// pass a http.Handler to extend it with Tracing functionality.
 	http.Handle("/", handler(eh))
 }
 
 func ExampleWithAttributes() {
-	// returns a function that excepts a http.Handler.
-	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithAttributes(attribute.String("example", "value")))
+	// returns a function that accepts an http.Handler.
+	handler := otelmiddleware.New(otelmiddleware.WithAttributes(attribute.String("example", "value")))
 	// pass a http.Handler to extend it with Tracing functionality.
 	http.Handle("/", handler(eh))
 }
 
 func ExampleWithPropagator() {
-	// returns a function that excepts a http.Handler.
-	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithPropagator(otel.GetTextMapPropagator()))
+	// returns a function that accepts an http.Handler.
+	handler := otelmiddleware.New(otelmiddleware.WithPropagator(otel.GetTextMapPropagator()))
+	// pass a http.Handler to extend it with Tracing functionality.
+	http.Handle("/", handler(eh))
+}
+
+func ExampleNew() {
+	// returns a function that accepts an http.Handler.
+	handler := otelmiddleware.New(otelmiddleware.WithServiceName("exampleService"))
 	// pass a http.Handler to extend it with Tracing functionality.
 	http.Handle("/", handler(eh))
 }
 
 func ExampleTraceWithOptions() {
-	// returns a function that excepts a http.Handler.
+	// returns a function that accepts an http.Handler.
 	handler := otelmiddleware.TraceWithOptions(otelmiddleware.WithServiceName("exampleService"))
 	// pass a http.Handler to extend it with Tracing functionality.
 	http.Handle("/", handler(eh))
@@ -70,4 +77,13 @@ func ExampleTraceWithOptions() {
 
 func ExampleTrace() {
 	http.Handle("/", otelmiddleware.Trace(eh))
+}
+
+func ExampleTraceWithName() {
+	http.Handle("/", otelmiddleware.TraceWithName("example-service", eh))
+}
+
+func ExampleWithPathSkipper() {
+	handler := otelmiddleware.New(otelmiddleware.WithPathSkipper())
+	http.Handle("/", handler(eh))
 }

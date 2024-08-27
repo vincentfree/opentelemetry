@@ -17,6 +17,7 @@ package otelmiddleware
 import (
 	"go.opentelemetry.io/otel/codes"
 	"net/http"
+	"regexp"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -32,15 +33,35 @@ const version = "0.1.0"
 // It can be passed to the TraceWithOptions function to configure a traceConfig struct.
 type TraceOption func(*traceConfig)
 
+// skipPaths is a slice of pointers to regular expression objects, used to skip specific paths during tracing.
+// It is used to exclude certain paths from being traced.
+type skipPaths []*regexp.Regexp
+
+func (s skipPaths) shouldSkip(path string) bool {
+	for _, re := range s {
+		if re.MatchString(path) {
+			return true
+		}
+	}
+	return false
+}
+
 // traceConfig contains all the configuration for the library.
 type traceConfig struct {
 	serviceName string
 	tracer      trace.Tracer
 	propagator  propagation.TextMapPropagator
 	attributes  []attribute.KeyValue
+	skipPaths   skipPaths
+}
+
+// New takes TraceOption's and initializes a new trace.Span.
+func New(options ...TraceOption) func(http.Handler) http.Handler {
+	return TraceWithOptions(options...)
 }
 
 // TraceWithOptions takes TraceOption's and initializes a new trace.Span.
+// Deprecated: use New instead
 func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 	// initialize an empty traceConfig.
 	config := &traceConfig{}
@@ -66,6 +87,12 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 
 		// assign the handler which creates the OpenTelemetry trace.Span.
 		fn := func(w http.ResponseWriter, r *http.Request) {
+			// if the path matches a skip pattern, short circuit
+			if config.skipPaths.shouldSkip(r.URL.Path) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			requestCtx := r.Context()
 			// extract the OpenTelemetry span context from the context.Context object.
 			ctx := config.propagator.Extract(requestCtx, propagation.HeaderCarrier(r.Header))
@@ -79,7 +106,7 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 				trace.WithAttributes(semconv.TelemetrySDKLanguageGo),
 				trace.WithSpanKind(trace.SpanKindServer),
 			}
-			// check for the traceConfig.attributes if present apply them to the trace.Span.
+			// check for the traceConfig.attributes if present, apply them to the trace.Span.
 			if len(config.attributes) > 0 {
 				opts = append(opts, trace.WithAttributes(config.attributes...))
 			}
@@ -123,9 +150,23 @@ func TraceWithOptions(opt ...TraceOption) func(next http.Handler) http.Handler {
 	}
 }
 
-// Trace uses the TraceWithOptions without additional options, this is a shorthand for TraceWithOptions().
+// Trace uses New without additional options, this is a shorthand for New().
+//
+// Prefer using the New function with at least the WithServiceName option to set the correct service name.
 func Trace(next http.Handler) http.Handler {
-	return TraceWithOptions()(next)
+	return New()(next)
+}
+
+// TraceWithName creates a new trace.Span with the given name and initializes the trace configuration using the
+// WithServiceName option.
+// It then returns an http.Handler that wraps the next handler and creates the trace.Span
+// for each incoming request.
+//
+// Parameters:
+//   - name: The name of the trace.Span.
+//   - next: The next http.Handler to be served.
+func TraceWithName(name string, next http.Handler) http.Handler {
+	return New(WithServiceName(name))(next)
 }
 
 // extract the route name.
@@ -159,5 +200,26 @@ func WithServiceName(serviceName string) TraceOption {
 func WithAttributes(attributes ...attribute.KeyValue) TraceOption {
 	return func(c *traceConfig) {
 		c.attributes = attributes
+	}
+}
+
+// WithPathSkipper takes a collection of path patterns and adds them to the skipPaths field of the traceConfig struct.
+// The skipPaths field is used to skip specific paths during tracing.
+// If the provided path patterns are empty, no changes will be applied to skipPaths.
+// Each path pattern is compiled into a regular expression and added to skipPaths.
+// If a path pattern fails to compile, it will be skipped and not added to skipPaths.
+func WithPathSkipper(paths ...string) TraceOption {
+	return func(c *traceConfig) {
+		if len(paths) == 0 {
+			return
+		}
+
+		ps := make(skipPaths, len(paths))
+		for _, path := range paths {
+			if r, err := regexp.Compile(path); err == nil {
+				ps = append(ps, r)
+			}
+		}
+		c.skipPaths = ps
 	}
 }
