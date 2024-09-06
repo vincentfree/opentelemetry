@@ -212,7 +212,7 @@ func initConfig(options Options) *config {
 }
 
 func newResource(applicationName, applicationVersion string, resources ...resource.Option) *resource.Resource {
-	resList := make([]resource.Option, len(resources))
+	resList := make([]resource.Option, 0, len(resources))
 	resList = append(resList, resources...)
 	resList = append(resList, resource.WithAttributes(
 		semconv.ServiceNameKey.String(applicationName),
