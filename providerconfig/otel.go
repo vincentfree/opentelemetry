@@ -40,19 +40,22 @@ type Option func(*config)
 type Options []Option
 
 type config struct {
-	applicationName    string
-	applicationVersion string
-	resourceOptions    []resource.Option
-	prometheusBridge   bool
-	metricInit         bool
-	traceInit          bool
-	logInit            bool
-	disableTraces      bool
-	disableMetrics     bool
-	disableLogs        bool
-	signalProcessor    SignalProcessor
-	tracePropagator    propagation.TextMapPropagator
-	executionType      Execution
+	applicationName       string
+	applicationVersion    string
+	resourceOptions       []resource.Option
+	prometheusBridge      bool
+	metricInit            bool
+	traceInit             bool
+	logInit               bool
+	disableTraces         bool
+	disableMetrics        bool
+	disableLogs           bool
+	signalProcessor       SignalProcessor
+	tracePropagator       propagation.TextMapPropagator
+	executionType         Execution
+	traceProviderOptions  []sdktrace.TracerProviderOption
+	logProviderOptions    []sdklog.LoggerProviderOption
+	metricProviderOptions []sdkmetric.Option
 }
 
 func WithApplicationName(applicationName string) Option {
@@ -70,6 +73,24 @@ func WithApplicationVersion(applicationVersion string) Option {
 func WithResourceOptions(resourceOptions ...resource.Option) Option {
 	return func(c *config) {
 		c.resourceOptions = append(c.resourceOptions, resourceOptions...)
+	}
+}
+
+func WithTraceProviderOptions(options ...sdktrace.TracerProviderOption) Option {
+	return func(c *config) {
+		c.traceProviderOptions = options
+	}
+}
+
+func WithMetricProviderOptions(options ...sdkmetric.Option) Option {
+	return func(c *config) {
+		c.metricProviderOptions = options
+	}
+}
+
+func WithLogProviderOptions(options ...sdklog.LoggerProviderOption) Option {
+	return func(c *config) {
+		c.logProviderOptions = options
 	}
 }
 
