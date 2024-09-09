@@ -20,7 +20,10 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 // initializing through main and manually setting the providers.
@@ -78,6 +81,24 @@ func ExampleWithResourceOptions() {
 		providerconfig.WithResourceOptions(resource.WithContainer(),
 			resource.WithHost(),
 		),
+	)
+}
+
+func ExampleWithTraceProviderOptions() {
+	providerconfig.New(
+		providerconfig.WithTraceProviderOptions(sdktrace.WithSampler(sdktrace.AlwaysSample())),
+	)
+}
+
+func ExampleWithLogProviderOptions() {
+	providerconfig.New(
+		providerconfig.WithLogProviderOptions(sdklog.WithAttributeCountLimit(15)),
+	)
+}
+
+func ExampleWithMetricProviderOptions() {
+	providerconfig.New(
+		providerconfig.WithMetricProviderOptions(sdkmetric.WithReader(sdkmetric.NewManualReader())),
 	)
 }
 
