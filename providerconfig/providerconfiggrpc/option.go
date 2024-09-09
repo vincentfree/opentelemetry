@@ -22,6 +22,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
+	"log/slog"
+	"math"
 )
 
 type grpcConfig struct {
@@ -40,8 +42,9 @@ func WithTraceOptions(options ...otlptracegrpc.Option) Option {
 	return func(gc *grpcConfig) {
 		if gc.traceOptions == nil || len(gc.traceOptions) == 0 {
 			gc.traceOptions = options
+		} else {
+			gc.traceOptions = append(gc.traceOptions, options...)
 		}
-		gc.traceOptions = append(gc.traceOptions, options...)
 	}
 }
 
@@ -49,8 +52,9 @@ func WithMetricOptions(options ...otlpmetricgrpc.Option) Option {
 	return func(gc *grpcConfig) {
 		if gc.metricOptions == nil || len(gc.metricOptions) == 0 {
 			gc.metricOptions = options
+		} else {
+			gc.metricOptions = append(gc.metricOptions, options...)
 		}
-		gc.metricOptions = append(gc.metricOptions, options...)
 	}
 }
 
@@ -58,8 +62,9 @@ func WithLogOptions(options ...otlploggrpc.Option) Option {
 	return func(gc *grpcConfig) {
 		if gc.logOptions == nil || len(gc.logOptions) == 0 {
 			gc.logOptions = options
+		} else {
+			gc.logOptions = append(gc.logOptions, options...)
 		}
-		gc.logOptions = append(gc.logOptions, options...)
 	}
 }
 
@@ -89,21 +94,30 @@ func WithBatchProcessorOptions(options ...log.BatchProcessorOption) Option {
 
 // WithCollectorEndpoint handled by providerconfig.New
 // Has no effect when WithGRPCConn is set for any of the Options
-func WithCollectorEndpoint(url string, port uint16) Option {
+func WithCollectorEndpoint(url string, port int) Option {
+	if port > math.MaxUint16 || port <= 0 {
+		logger.Error("invalid port value in: WithCollectorEndpoint", slog.Uint64("port_range_max", math.MaxUint16), slog.Uint64("port_range_min", 0), slog.Int("port_provided", port))
+		panic("invalid port value in: WithCollectorEndpoint")
+	}
+	logger.Debug("provided collector endpoint", slog.Int("provided_port", port), slog.String("provided_url", url))
+
 	return func(gc *grpcConfig) {
 		if gc.traceOptions == nil || len(gc.traceOptions) == 0 {
 			gc.traceOptions = []otlptracegrpc.Option{otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		} else {
+			gc.traceOptions = append(gc.traceOptions, otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 		}
-		gc.traceOptions = append(gc.traceOptions, otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 
 		if gc.metricOptions == nil || len(gc.metricOptions) == 0 {
 			gc.metricOptions = []otlpmetricgrpc.Option{otlpmetricgrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		} else {
+			gc.metricOptions = append(gc.metricOptions, otlpmetricgrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 		}
-		gc.metricOptions = append(gc.metricOptions, otlpmetricgrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 
 		if gc.logOptions == nil || len(gc.logOptions) == 0 {
 			gc.logOptions = []otlploggrpc.Option{otlploggrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		} else {
+			gc.logOptions = append(gc.logOptions, otlploggrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 		}
-		gc.logOptions = append(gc.logOptions, otlploggrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
 	}
 }
