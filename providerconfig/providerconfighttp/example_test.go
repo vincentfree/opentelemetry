@@ -30,7 +30,7 @@ import (
 
 func ExampleNew() {
 	signalProcessor := providerconfighttp.New(
-		providerconfighttp.WithCollectorEndpoint("0.0.0.0", 9898),
+		providerconfighttp.WithCollectorEndpoint("0.0.0.0:9898"),
 	)
 	provider := providerconfig.New(providerconfig.WithApplicationName("example-app"),
 		providerconfig.WithApplicationVersion("0.1.0"),
@@ -47,7 +47,9 @@ func ExampleNew() {
 
 func ExampleWithCollectorEndpoint() {
 	providerconfighttp.New(
-		providerconfighttp.WithCollectorEndpoint("0.0.0.0", 9898),
+		providerconfighttp.WithCollectorEndpoint("0.0.0.0:9898"),
+		// or
+		providerconfighttp.WithCollectorEndpoint("http://0.0.0.0:9898"),
 	)
 }
 
@@ -90,5 +92,12 @@ func ExampleWithLogOptions() {
 func ExampleWithMetricOptions() {
 	providerconfighttp.New(
 		providerconfighttp.WithMetricOptions(otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression)),
+	)
+}
+
+func ExampleWithInsecure() {
+	providerconfighttp.New(
+		providerconfighttp.WithCollectorEndpoint("0.0.0.0:9898"),
+		providerconfighttp.WithInsecure(),
 	)
 }

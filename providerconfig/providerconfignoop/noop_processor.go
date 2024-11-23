@@ -69,7 +69,7 @@ func (n noopSpanProcessor) ForceFlush(_ context.Context) error {
 
 type noopLogProcessor struct{}
 
-func (n noopLogProcessor) OnEmit(ctx context.Context, record log.Record) error {
+func (n noopLogProcessor) OnEmit(ctx context.Context, record *log.Record) error {
 	return nil
 }
 
