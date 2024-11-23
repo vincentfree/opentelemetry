@@ -15,8 +15,10 @@
 package providerconfig_test
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/vincentfree/opentelemetry/providerconfig"
 	"github.com/vincentfree/opentelemetry/providerconfig/providerconfignoop"
+	prombridge "go.opentelemetry.io/contrib/bridges/prometheus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
@@ -24,6 +26,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"time"
 )
 
 // initializing through main and manually setting the providers.
@@ -98,7 +101,7 @@ func ExampleWithLogProviderOptions() {
 
 func ExampleWithMetricProviderOptions() {
 	providerconfig.New(
-		providerconfig.WithMetricProviderOptions(sdkmetric.WithReader(sdkmetric.NewManualReader())),
+		providerconfig.WithPeriodicReaderOptions(sdkmetric.WithTimeout(30 * time.Second)),
 	)
 }
 
@@ -120,6 +123,18 @@ func ExampleWithTracePropagator() {
 				propagation.Baggage{},
 			),
 		),
+	)
+}
+
+func ExampleWithPrometheusBridge() {
+	providerconfig.New(
+		providerconfig.WithApplicationName("example-app"),
+		providerconfig.WithApplicationVersion("0.1.0"),
+		providerconfig.WithExecutionType(providerconfig.Async),
+		providerconfig.WithSignalProcessor(providerconfignoop.NewNoopProcessor()),
+		// options come from the opentelemetry bridge(renamed to prombridge) library
+		// (naming conflicts with the prometheus library)
+		providerconfig.WithPrometheusBridge(prombridge.WithGatherer(prometheus.NewRegistry())),
 	)
 }
 

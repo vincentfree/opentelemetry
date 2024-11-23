@@ -31,9 +31,7 @@ import (
 )
 
 var (
-	grpcPort = 4137
-	httpPort = 4318
-	logger   = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelError}))
+	logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelError}))
 )
 
 type Option func(*config)
@@ -55,7 +53,7 @@ type config struct {
 	executionType         Execution
 	traceProviderOptions  []sdktrace.TracerProviderOption
 	logProviderOptions    []sdklog.LoggerProviderOption
-	metricProviderOptions []sdkmetric.PeriodicReaderOption
+	periodicReaderOptions []sdkmetric.PeriodicReaderOption
 	prometheusOptions     []prometheus.Option
 }
 
@@ -77,18 +75,21 @@ func WithResourceOptions(resourceOptions ...resource.Option) Option {
 	}
 }
 
+// WithTraceProviderOptions accepts TracerProviderOptions
 func WithTraceProviderOptions(options ...sdktrace.TracerProviderOption) Option {
 	return func(c *config) {
 		c.traceProviderOptions = options
 	}
 }
 
-func WithMetricProviderOptions(options ...sdkmetric.PeriodicReaderOption) Option {
+// WithPeriodicReaderOptions accepts PeriodicReaderOptions
+func WithPeriodicReaderOptions(options ...sdkmetric.PeriodicReaderOption) Option {
 	return func(c *config) {
-		c.metricProviderOptions = options
+		c.periodicReaderOptions = options
 	}
 }
 
+// WithLogProviderOptions accepts LoggerProviderOptions
 func WithLogProviderOptions(options ...sdklog.LoggerProviderOption) Option {
 	return func(c *config) {
 		c.logProviderOptions = options
@@ -210,8 +211,6 @@ func WithSignalProcessor(signalProcessor SignalProcessor) Option {
 	}
 }
 
-//TODO add sync or batch option
-
 func initConfig(options Options) *config {
 	cfg := &config{}
 	for _, option := range options {
@@ -229,8 +228,8 @@ func initConfig(options Options) *config {
 	}
 
 	if !cfg.executionType.IsValid() {
-		logger.Info("using default sync processors for execution of signals. Use 'providerconfig.WithExecutionType' option to override the execution type.")
-		cfg.executionType = Sync
+		logger.Info("using default async processors for execution of signals. Use 'providerconfig.WithExecutionType' option to override the execution type.")
+		cfg.executionType = Async
 	}
 
 	return cfg
@@ -308,8 +307,8 @@ func New(options ...Option) Provider {
 func setupMetricProvider(cfg *config, res *resource.Resource) *sdkmetric.MeterProvider {
 	var metricOptions []sdkmetric.PeriodicReaderOption
 
-	if cfg.metricProviderOptions != nil {
-		metricOptions = append(metricOptions, cfg.metricProviderOptions...)
+	if cfg.periodicReaderOptions != nil {
+		metricOptions = append(metricOptions, cfg.periodicReaderOptions...)
 	}
 
 	if cfg.prometheusBridge {
