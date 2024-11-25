@@ -31,7 +31,7 @@ import (
 
 var (
 	protocolReg = regexp.MustCompile("^https?://")
-	endpointReg = regexp.MustCompile("^(https?://\\w+:\\d{2,5}|\\w+:\\d{2,5})$")
+	endpointReg = regexp.MustCompile("^(https?://.+:\\d{2,5}|.+:\\d{2,5})$")
 )
 
 type grpcConfig struct {
@@ -142,9 +142,22 @@ func validateEndpoint(endpoint string) error {
 	if !endpointReg.MatchString(endpoint) {
 		return fmt.Errorf("invalid endpoint: %s", endpoint)
 	}
+
+	if strings.Contains(endpoint, "://") {
+		x := strings.Split(endpoint, "://")
+		switch strings.ToLower(x[0]) {
+		case "https", "http":
+			break
+		default:
+			return fmt.Errorf("invalid endpoint: %s, protocol was invalid: %s", endpoint, x[0])
+		}
+	}
+
 	ne := protocolReg.ReplaceAllString(endpoint, "")
-	hostPort := strings.SplitN(ne, ":", 1)
-	port, err := strconv.Atoi(hostPort[1])
+	i := strings.LastIndex(ne, ":")
+	host := ne[:i]
+	p := ne[i+1:]
+	port, err := strconv.Atoi(p)
 	if err != nil {
 		return err
 	}
@@ -153,6 +166,6 @@ func validateEndpoint(endpoint string) error {
 		return fmt.Errorf("invalid port value: %d", port)
 	}
 
-	logger.Debug("provided collector endpoint", slog.String("provided_host", hostPort[0]), slog.Int("provided_port", port))
+	logger.Debug("provided collector endpoint", slog.String("provided_host", host), slog.Int("provided_port", port))
 	return nil
 }
