@@ -1,6 +1,7 @@
 module github.com/vincentfree/opentelemetry
 
 go 1.22
+toolchain go1.22.5
 
 require (
 	github.com/rs/zerolog v1.33.0
@@ -8,7 +9,7 @@ require (
 	github.com/vincentfree/opentelemetry/otellogrus v0.0.2
 	github.com/vincentfree/opentelemetry/otelslog v0.0.0-00010101000000-000000000000
 	github.com/vincentfree/opentelemetry/otelzerolog v0.0.0-00010101000000-000000000000
-	go.opentelemetry.io/otel v1.32.0
+	go.opentelemetry.io/otel v1.33.0
 )
 
 require (
@@ -16,11 +17,12 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/bridges/otelslog v0.3.0 // indirect
 	go.opentelemetry.io/contrib/bridges/otelzerolog v0.0.0-20240726205214-b0584291236a // indirect
 	go.opentelemetry.io/otel/log v0.4.0 // indirect
-	go.opentelemetry.io/otel/metric v1.32.0 // indirect
-	go.opentelemetry.io/otel/trace v1.32.0 // indirect
+	go.opentelemetry.io/otel/metric v1.33.0 // indirect
+	go.opentelemetry.io/otel/trace v1.33.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
 )
 
