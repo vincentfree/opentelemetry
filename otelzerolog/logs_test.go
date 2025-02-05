@@ -18,15 +18,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
-	"io"
-	"os"
-	"strings"
-	"testing"
 )
 
 func TestSetGlobalLogger(t *testing.T) {
