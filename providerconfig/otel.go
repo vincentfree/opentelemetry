@@ -17,7 +17,7 @@ package providerconfig
 import (
 	"context"
 	"errors"
-	prommetric "go.opentelemetry.io/contrib/bridges/prometheus"
+	"go.opentelemetry.io/contrib/bridges/prometheus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
@@ -31,9 +31,7 @@ import (
 )
 
 var (
-	grpcPort = 4137
-	httpPort = 4318
-	logger   = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelError}))
+	logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelError}))
 )
 
 type Option func(*config)
@@ -55,7 +53,8 @@ type config struct {
 	executionType         Execution
 	traceProviderOptions  []sdktrace.TracerProviderOption
 	logProviderOptions    []sdklog.LoggerProviderOption
-	metricProviderOptions []sdkmetric.Option
+	periodicReaderOptions []sdkmetric.PeriodicReaderOption
+	prometheusOptions     []prometheus.Option
 }
 
 func WithApplicationName(applicationName string) Option {
@@ -76,18 +75,21 @@ func WithResourceOptions(resourceOptions ...resource.Option) Option {
 	}
 }
 
+// WithTraceProviderOptions accepts TracerProviderOptions
 func WithTraceProviderOptions(options ...sdktrace.TracerProviderOption) Option {
 	return func(c *config) {
 		c.traceProviderOptions = options
 	}
 }
 
-func WithMetricProviderOptions(options ...sdkmetric.Option) Option {
+// WithPeriodicReaderOptions accepts PeriodicReaderOptions
+func WithPeriodicReaderOptions(options ...sdkmetric.PeriodicReaderOption) Option {
 	return func(c *config) {
-		c.metricProviderOptions = options
+		c.periodicReaderOptions = options
 	}
 }
 
+// WithLogProviderOptions accepts LoggerProviderOptions
 func WithLogProviderOptions(options ...sdklog.LoggerProviderOption) Option {
 	return func(c *config) {
 		c.logProviderOptions = options
@@ -99,10 +101,13 @@ func WithLogProviderOptions(options ...sdklog.LoggerProviderOption) Option {
 // and forward them over OTLP to an endpoint.
 // If the bridge is not enabled, prometheus metrics will not be exported over OTLP.
 //
+// # Accepts prometheus.Option's
+//
 // The Prometheus bridge is disabled by default.
-func WithPrometheusBridge() Option {
+func WithPrometheusBridge(options ...prometheus.Option) Option {
 	return func(c *config) {
 		c.prometheusBridge = true
+		c.prometheusOptions = options
 	}
 }
 
@@ -206,8 +211,6 @@ func WithSignalProcessor(signalProcessor SignalProcessor) Option {
 	}
 }
 
-//TODO add sync or batch option
-
 func initConfig(options Options) *config {
 	cfg := &config{}
 	for _, option := range options {
@@ -225,8 +228,8 @@ func initConfig(options Options) *config {
 	}
 
 	if !cfg.executionType.IsValid() {
-		logger.Info("using default sync processors for execution of signals. Use 'providerconfig.WithExecutionType' option to override the execution type.")
-		cfg.executionType = Sync
+		logger.Info("using default async processors for execution of signals. Use 'providerconfig.WithExecutionType' option to override the execution type.")
+		cfg.executionType = Async
 	}
 
 	return cfg
@@ -268,47 +271,11 @@ func New(options ...Option) Provider {
 
 	res := newResource(cfg.applicationName, cfg.applicationVersion, cfg.resourceOptions...)
 
-	// Register the trace exporter with a TracerProvider, using a batch
-	// span processor to aggregate spans before export.
-	var bsp sdktrace.SpanProcessor
-	switch cfg.executionType {
-	case Sync:
-		bsp = cfg.signalProcessor.SyncTraceProcessor()
-	case Async:
-		bsp = cfg.signalProcessor.AsyncTraceProcessor()
-	}
+	tracerProvider := setupTraceProvider(cfg, res)
 
-	tracerProvider := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithResource(res),
-		sdktrace.WithSpanProcessor(bsp),
-	)
+	logProvider := setupLogProvider(cfg, res)
 
-	var logProcessor sdklog.Processor
-	switch cfg.executionType {
-	case Async:
-		logProcessor = cfg.signalProcessor.AsyncLogProcessor()
-	case Sync:
-		logProcessor = cfg.signalProcessor.SyncLogProcessor()
-	}
-
-	logProvider := sdklog.NewLoggerProvider(
-		sdklog.WithResource(res),
-		sdklog.WithProcessor(logProcessor),
-	)
-
-	//Metrics
-	var metricOptions []sdkmetric.PeriodicReaderOption
-
-	if cfg.prometheusBridge {
-		bridge := prommetric.NewMetricProducer()
-		metricOptions = append(metricOptions, sdkmetric.WithProducer(bridge))
-	}
-
-	meterProvider := sdkmetric.NewMeterProvider(
-		sdkmetric.WithResource(res),
-		sdkmetric.WithReader(cfg.signalProcessor.MetricProcessor(metricOptions...)),
-	)
+	meterProvider := setupMetricProvider(cfg, res)
 
 	if cfg.metricInit && !cfg.disableMetrics {
 		otel.SetMeterProvider(meterProvider)
@@ -335,6 +302,60 @@ func New(options ...Option) Provider {
 		logProvider:    logProvider,
 		hooks:          hooks,
 	}
+}
+
+func setupMetricProvider(cfg *config, res *resource.Resource) *sdkmetric.MeterProvider {
+	var metricOptions []sdkmetric.PeriodicReaderOption
+
+	if cfg.periodicReaderOptions != nil {
+		metricOptions = append(metricOptions, cfg.periodicReaderOptions...)
+	}
+
+	if cfg.prometheusBridge {
+		bridge := prometheus.NewMetricProducer(cfg.prometheusOptions...)
+		metricOptions = append(metricOptions, sdkmetric.WithProducer(bridge))
+	}
+
+	meterProvider := sdkmetric.NewMeterProvider(
+		sdkmetric.WithResource(res),
+		sdkmetric.WithReader(cfg.signalProcessor.MetricProcessor(metricOptions...)),
+	)
+	return meterProvider
+}
+
+func setupLogProvider(cfg *config, res *resource.Resource) *sdklog.LoggerProvider {
+	var logProcessor sdklog.Processor
+	switch cfg.executionType {
+	case Async:
+		logProcessor = cfg.signalProcessor.AsyncLogProcessor()
+	case Sync:
+		logProcessor = cfg.signalProcessor.SyncLogProcessor()
+	}
+
+	logProvider := sdklog.NewLoggerProvider(
+		sdklog.WithResource(res),
+		sdklog.WithProcessor(logProcessor),
+	)
+	return logProvider
+}
+
+func setupTraceProvider(cfg *config, res *resource.Resource) *sdktrace.TracerProvider {
+	// Register the trace exporter with a TracerProvider, using a batch
+	// span processor to aggregate spans before export.
+	var bsp sdktrace.SpanProcessor
+	switch cfg.executionType {
+	case Sync:
+		bsp = cfg.signalProcessor.SyncTraceProcessor()
+	case Async:
+		bsp = cfg.signalProcessor.AsyncTraceProcessor()
+	}
+
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(res),
+		sdktrace.WithSpanProcessor(bsp),
+	)
+	return tracerProvider
 }
 
 func handleErr(err error, message string) {

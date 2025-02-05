@@ -24,6 +24,14 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 	"log/slog"
 	"math"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+var (
+	protocolReg = regexp.MustCompile("^https?://")
+	endpointReg = regexp.MustCompile("^(https?://.+:\\d{2,5}|.+:\\d{2,5})$")
 )
 
 type grpcConfig struct {
@@ -92,32 +100,72 @@ func WithBatchProcessorOptions(options ...log.BatchProcessorOption) Option {
 	}
 }
 
+// WithInsecure appends the WithInsecure options for the trace, metric and log providers.
+func WithInsecure() Option {
+	return func(c *grpcConfig) {
+		c.traceOptions = append(c.traceOptions, otlptracegrpc.WithInsecure())
+		c.logOptions = append(c.logOptions, otlploggrpc.WithInsecure())
+		c.metricOptions = append(c.metricOptions, otlpmetricgrpc.WithInsecure())
+	}
+}
+
 // WithCollectorEndpoint handled by providerconfig.New
 // Has no effect when WithGRPCConn is set for any of the Options
-func WithCollectorEndpoint(url string, port int) Option {
-	if port > math.MaxUint16 || port <= 0 {
-		logger.Error("invalid port value in: WithCollectorEndpoint", slog.Uint64("port_range_max", math.MaxUint16), slog.Uint64("port_range_min", 0), slog.Int("port_provided", port))
-		panic("invalid port value in: WithCollectorEndpoint")
+func WithCollectorEndpoint(endpoint string) Option {
+	err := validateEndpoint(endpoint)
+	if err != nil {
+		panic(fmt.Errorf("endpoint did not pass validation. %w", err))
 	}
-	logger.Debug("provided collector endpoint", slog.Int("provided_port", port), slog.String("provided_url", url))
 
 	return func(gc *grpcConfig) {
-		if gc.traceOptions == nil || len(gc.traceOptions) == 0 {
-			gc.traceOptions = []otlptracegrpc.Option{otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		if len(gc.traceOptions) == 0 {
+			gc.traceOptions = []otlptracegrpc.Option{otlptracegrpc.WithEndpoint(endpoint)}
 		} else {
-			gc.traceOptions = append(gc.traceOptions, otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
+			gc.traceOptions = append(gc.traceOptions, otlptracegrpc.WithEndpoint(endpoint))
 		}
 
-		if gc.metricOptions == nil || len(gc.metricOptions) == 0 {
-			gc.metricOptions = []otlpmetricgrpc.Option{otlpmetricgrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		if len(gc.metricOptions) == 0 {
+			gc.metricOptions = []otlpmetricgrpc.Option{otlpmetricgrpc.WithEndpoint(endpoint)}
 		} else {
-			gc.metricOptions = append(gc.metricOptions, otlpmetricgrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
+			gc.metricOptions = append(gc.metricOptions, otlpmetricgrpc.WithEndpoint(endpoint))
 		}
 
-		if gc.logOptions == nil || len(gc.logOptions) == 0 {
-			gc.logOptions = []otlploggrpc.Option{otlploggrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port))}
+		if len(gc.logOptions) == 0 {
+			gc.logOptions = []otlploggrpc.Option{otlploggrpc.WithEndpoint(endpoint)}
 		} else {
-			gc.logOptions = append(gc.logOptions, otlploggrpc.WithEndpoint(fmt.Sprintf("%s:%d", url, port)))
+			gc.logOptions = append(gc.logOptions, otlploggrpc.WithEndpoint(endpoint))
 		}
 	}
+}
+
+func validateEndpoint(endpoint string) error {
+	if !endpointReg.MatchString(endpoint) {
+		return fmt.Errorf("invalid endpoint: %s", endpoint)
+	}
+
+	if strings.Contains(endpoint, "://") {
+		x := strings.Split(endpoint, "://")
+		switch strings.ToLower(x[0]) {
+		case "https", "http":
+			break
+		default:
+			return fmt.Errorf("invalid endpoint: %s, protocol was invalid: %s", endpoint, x[0])
+		}
+	}
+
+	ne := protocolReg.ReplaceAllString(endpoint, "")
+	i := strings.LastIndex(ne, ":")
+	host := ne[:i]
+	p := ne[i+1:]
+	port, err := strconv.Atoi(p)
+	if err != nil {
+		return err
+	}
+	if port > math.MaxUint16 || port <= 0 {
+		logger.Error("invalid port value", slog.Uint64("port_range_max", math.MaxUint16), slog.Uint64("port_range_min", 0), slog.Int("port_provided", port))
+		return fmt.Errorf("invalid port value: %d", port)
+	}
+
+	logger.Debug("provided collector endpoint", slog.String("provided_host", host), slog.Int("provided_port", port))
+	return nil
 }

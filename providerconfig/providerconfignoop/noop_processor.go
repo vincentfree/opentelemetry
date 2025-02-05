@@ -16,6 +16,7 @@ package providerconfignoop
 
 import (
 	"context"
+
 	"github.com/vincentfree/opentelemetry/providerconfig"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
@@ -69,7 +70,7 @@ func (n noopSpanProcessor) ForceFlush(_ context.Context) error {
 
 type noopLogProcessor struct{}
 
-func (n noopLogProcessor) OnEmit(ctx context.Context, record log.Record) error {
+func (n noopLogProcessor) OnEmit(ctx context.Context, record *log.Record) error {
 	return nil
 }
 
@@ -90,11 +91,11 @@ type noopMetricReader struct{}
 func (n noopMetricReader) register(producer interface{}) {
 }
 
-func (n noopMetricReader) temporality(kind metric.InstrumentKind) metricdata.Temporality {
+func (n noopMetricReader) temporality(_ metric.InstrumentKind) metricdata.Temporality {
 	return 0
 }
 
-func (n noopMetricReader) aggregation(kind metric.InstrumentKind) metric.Aggregation {
+func (n noopMetricReader) aggregation(_ metric.InstrumentKind) metric.Aggregation {
 	return metric.AggregationDefault{}
 }
 
