@@ -16,17 +16,18 @@ package providerconfighttp
 
 import (
 	"fmt"
+	"log/slog"
+	"math"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
-	"log/slog"
-	"math"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 var (
@@ -142,7 +143,7 @@ func validateEndpoint(endpoint string) error {
 		return fmt.Errorf("invalid endpoint: %s", endpoint)
 	}
 	ne := protocolReg.ReplaceAllString(endpoint, "")
-	hostPort := strings.SplitN(ne, ":", 1)
+	hostPort := strings.SplitN(ne, ":", 2)
 	port, err := strconv.Atoi(hostPort[1])
 	if err != nil {
 		return err
