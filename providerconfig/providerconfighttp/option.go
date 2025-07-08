@@ -32,7 +32,7 @@ import (
 
 var (
 	protocolReg = regexp.MustCompile("^https?://")
-	endpointReg = regexp.MustCompile("^(https?://\\w+:\\d{2,5}|\\w+:\\d{2,5})$")
+	endpointReg = regexp.MustCompile(`^(https?://\w+:\d{2,5}|\w+:\d{2,5})$`)
 )
 
 type httpConfig struct {

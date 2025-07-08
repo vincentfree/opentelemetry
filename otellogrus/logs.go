@@ -25,6 +25,8 @@ import (
 // LogOption takes a logConfig struct and applies changes.
 // It can be passed to the SetLogOptions function to configure a logConfig struct.
 type LogOption func(*logConfig)
+
+// LoggerOption is a function type that modifies a loggerConfig instance to configure logging settings.
 type LoggerOption func(*loggerConfig)
 
 type logConfig struct {

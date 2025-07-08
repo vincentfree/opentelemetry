@@ -31,7 +31,7 @@ import (
 
 var (
 	protocolReg = regexp.MustCompile("^https?://")
-	endpointReg = regexp.MustCompile("^(https?://.+:\\d{2,5}|.+:\\d{2,5})$")
+	endpointReg = regexp.MustCompile(`^(https?://.+:\d{2,5}|.+:\d{2,5})$`)
 )
 
 type grpcConfig struct {
