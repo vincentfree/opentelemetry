@@ -18,14 +18,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/sirupsen/logrus"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"golang.org/x/exp/constraints"
 	"io"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"golang.org/x/exp/constraints"
 )
 
 func TestSetLogOptions(t *testing.T) {
@@ -52,9 +53,9 @@ func TestSetLogOptions(t *testing.T) {
 func TestWithSpanID(t *testing.T) {
 	id := "testSpanID"
 	// given a new span ID name
-	SetLogOptions(WithSpanID(id))
+	SetLogOptions(WithSpanIDName(id))
 	t.Cleanup(func() {
-		SetLogOptions(WithSpanID("spanID"))
+		SetLogOptions(WithSpanIDName("spanID"))
 	})
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
@@ -72,9 +73,9 @@ func TestWithSpanID(t *testing.T) {
 func TestWithTraceID(t *testing.T) {
 	id := "testTraceID"
 	// given a new span ID name
-	SetLogOptions(WithTraceID(id))
+	SetLogOptions(WithTraceIDName(id))
 	t.Cleanup(func() {
-		SetLogOptions(WithTraceID("traceID"))
+		SetLogOptions(WithTraceIDName("traceID"))
 	})
 
 	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
@@ -297,5 +298,76 @@ func idCheck(t *testing.T, name string, value any, length int) {
 
 	} else {
 		t.Errorf("%s should be in the log", name)
+	}
+}
+
+func TestWithAttributePrefix_TrailingDot(t *testing.T) {
+	t.Cleanup(func() {
+		SetLogOptions(
+			WithAttributePrefix("trace.attribute"),
+			WithTraceIDName("traceID"),
+			WithSpanIDName("spanID"),
+		)
+	})
+
+	SetLogOptions(WithAttributes(attribute.String("test", "value")), WithAttributePrefix("testing."))
+
+	_, span := otel.Tracer("test").Start(context.Background(), "serviceName")
+	out := captureLog(t, func(logger *logrus.Logger) {
+		logger.WithFields(AddTracingContext(span)).Info("test")
+	})
+
+	data := logToMap(t, out)
+
+	if _, ok := data["testing.test"]; !ok {
+		t.Errorf("attribute with trimmed prefix was not found; expected key %q, data: %v", "testing.test", data)
+	}
+	if _, ok := data["testing..test"]; ok {
+		t.Errorf("unexpected key with double dot present: testing..test")
+	}
+}
+
+func TestNewWithLogOptions_AppliesOptions(t *testing.T) {
+	t.Cleanup(func() {
+		SetLogOptions(
+			WithAttributePrefix("trace.attribute"),
+			WithTraceIDName("traceID"),
+			WithSpanIDName("spanID"),
+		)
+	})
+
+	logger := NewWithLogOptions(WithServiceName("svc"), WithAttributes(attribute.String("foo", "bar")))
+
+	r, w, _ := os.Pipe()
+	logger.Out = w
+	logger.Formatter = &logrus.JSONFormatter{}
+
+	_, span := otel.Tracer("test").Start(context.Background(), "svc")
+	logger.WithTracingContext(span).Info("test")
+
+	_ = w.Close()
+	out, _ := io.ReadAll(r)
+	data := logToMap(t, out)
+
+	if v, ok := data["service.name"].(string); !ok || v != "svc" {
+		t.Errorf("expected service.name=svc, got: %v", data["service.name"])
+	}
+
+	if v, ok := data["trace.attribute.foo"].(string); !ok || v != "bar" {
+		t.Errorf("expected trace.attribute.foo=bar, got: %v", data["trace.attribute.foo"])
+	}
+}
+
+func TestNewWithLogOptions_BridgeHookPresence(t *testing.T) {
+	// By default, a bridge hook should be added
+	l1 := NewWithLogOptions()
+	if len(l1.Hooks) == 0 {
+		t.Errorf("expected otellogrus bridge hook to be added by default")
+	}
+
+	// When bridge is disabled, there should be no hooks
+	l2 := NewWithLogOptions(WithBridgeDisabled())
+	if len(l2.Hooks) != 0 {
+		t.Errorf("expected no hooks when bridge is disabled")
 	}
 }

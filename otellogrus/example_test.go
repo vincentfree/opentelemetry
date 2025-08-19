@@ -17,10 +17,12 @@ package otellogrus_test
 import (
 	"context"
 	"errors"
+
 	"github.com/sirupsen/logrus"
 	"github.com/vincentfree/opentelemetry/otellogrus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func ExampleAddTracingContext() {
@@ -73,12 +75,12 @@ func ExampleWithServiceName() {
 }
 
 func ExampleWithSpanID() {
-	otellogrus.SetLogOptions(otellogrus.WithSpanID("span-id"))
+	otellogrus.SetLogOptions(otellogrus.WithSpanIDName("span-id"))
 	// use AddTracingContext or AddTracingContextWithAttributes
 }
 
 func ExampleWithTraceID() {
-	otellogrus.SetLogOptions(otellogrus.WithTraceID("trace-id"))
+	otellogrus.SetLogOptions(otellogrus.WithTraceIDName("trace-id"))
 	// use AddTracingContext or AddTracingContextWithAttributes
 }
 
@@ -101,6 +103,80 @@ func ExampleSetLogOptions() {
 func ExampleNew() {
 	logger := otellogrus.New(otellogrus.WithLevel(logrus.ErrorLevel), otellogrus.WithFormatter(&logrus.JSONFormatter{}))
 	logger.Info("message")
+}
+
+func ExampleNewWithLogOptions() {
+	// Create a new logger with LogOptions
+	logger := otellogrus.NewWithLogOptions(
+		otellogrus.WithServiceName("example-service"),
+		otellogrus.WithAttributes(attribute.String("app", "example")),
+	)
+
+	// Set up tracer
+	tracer := otel.Tracer("otellogrus/example")
+	_, span := tracer.Start(context.Background(), "example-span")
+
+	// Log with tracing context
+	logger.WithTracingContext(span).Info("example message with OpenTelemetry bridge")
+}
+
+func ExampleWithBridgeDisabled() {
+	// Create a logger with the OpenTelemetry bridge disabled
+	logger := otellogrus.NewWithLogOptions(
+		otellogrus.WithBridgeDisabled(),
+		otellogrus.WithServiceName("example-service"),
+	)
+
+	// Set up tracer
+	tracer := otel.Tracer("otellogrus/example")
+	_, span := tracer.Start(context.Background(), "example-span")
+
+	// Log with tracing context (bridge is disabled, but tracing context is still added to logs)
+	logger.WithTracingContext(span).Info("example message with bridge disabled")
+}
+
+func Example_noopSpan() {
+	// Create a logger with default options
+	logger := otellogrus.NewWithLogOptions(
+		otellogrus.WithServiceName("example-service"),
+	)
+
+	// Use a noop span for demonstration
+	span := noop.Span{}
+
+	// Log with the noop span
+	logger.WithTracingContext(span).Info("example message with noop span")
+
+	// Log with attributes
+	attributes := []attribute.KeyValue{
+		attribute.String("exampleKey", "exampleValue"),
+	}
+	logger.WithTracingContextAndAttributes(span, attributes).Info("example with attributes and noop span")
+}
+
+func Example_openTelemetryBridge() {
+	// Create a logger with OpenTelemetry bridge enabled (default)
+	// The bridge sends logs to OpenTelemetry in the OTLP format
+	logger := otellogrus.NewWithLogOptions(
+		otellogrus.WithServiceName("example-service"),
+		// By default, the bridge uses a noop logger provider
+		// In a real application, you would configure this with your actual logger provider
+	)
+
+	// Set up tracer
+	tracer := otel.Tracer("otellogrus/example")
+	_, span := tracer.Start(context.Background(), "example-span")
+
+	// Log with tracing context - this will be sent to both the configured logrus output
+	// and to the OpenTelemetry backend via the bridge
+	logger.WithTracingContext(span).Info("example message with OpenTelemetry bridge")
+
+	// You can also log with additional attributes
+	attributes := []attribute.KeyValue{
+		attribute.String("http.method", "GET"),
+		attribute.String("http.url", "https://example.com"),
+	}
+	logger.WithTracingContextAndAttributes(span, attributes).Info("request processed")
 }
 
 func ExampleLogger_WithTracingContext() {

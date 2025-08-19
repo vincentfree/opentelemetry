@@ -16,15 +16,16 @@ package otelslog
 
 import (
 	"context"
+	"log/slog"
+	"os"
+	"strconv"
+	"strings"
+
 	otelslogger "go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/log/noop"
 	"go.opentelemetry.io/otel/trace"
-	"log/slog"
-	"os"
-	"strconv"
-	"strings"
 )
 
 // LogOption takes a logConfig struct and applies changes.
@@ -126,7 +127,7 @@ func initLogger(options []LogOption) *Logger {
 		if config.serviceName != "" {
 			name = config.serviceName
 		} else {
-			name = "myApp"
+			name = "unknownService"
 		}
 
 		config.handler = otelslogger.NewHandler(name, otelslogger.WithLoggerProvider(noop.NewLoggerProvider()))

@@ -15,11 +15,15 @@
 package otellogrus
 
 import (
+	"strings"
+
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/contrib/bridges/otellogrus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/log"
+	"go.opentelemetry.io/otel/log/noop"
 	"go.opentelemetry.io/otel/trace"
-	"strings"
 )
 
 // LogOption takes a logConfig struct and applies changes.
@@ -32,13 +36,26 @@ type LoggerOption func(*loggerConfig)
 type logConfig struct {
 	attributes      []attribute.KeyValue
 	serviceName     string
-	traceId         string
-	spanId          string
+	traceIdName     string
+	spanIdName      string
 	attributePrefix string
+	hook            *otellogrus.Hook
+	provider        log.LoggerProvider
+	bridgeDisabled  bool
 }
 
 type Logger struct {
 	*logrus.Logger
+	// defaultTraceId has a default trace ID key in the logs
+	defaultTraceId string
+	// defaultSpanId has a default span ID key in the logs
+	defaultSpanId string
+	// defaultServiceName is empty by default; when no value is set the service name won't be used with a default in the logs
+	defaultServiceName string
+	// defaultAttributes contains a global set of attribute.KeyValue's that will be added to very structured log. when the slice is empty they won't be added
+	defaultAttributes []attribute.KeyValue
+	// defaultAttrPrefix
+	defaultAttrPrefix string
 }
 
 type loggerConfig struct {
@@ -46,62 +63,94 @@ type loggerConfig struct {
 	level     logrus.Level
 }
 
-var (
-	// _traceId has a default trace ID key in the logs
-	_traceId = "traceID"
-	// _spanId has a default span ID key in the logs
-	_spanId = "spanID"
-	// _serviceName is empty by default, when no value is set the service name won't be used with a default in the logs
-	_serviceName string
-	// _attributes contains a global set of attribute.KeyValue's that will be added to very structured log. when the slice is empty they won't be added
-	_attributes = []attribute.KeyValue(nil)
+func defaultLogger() *Logger {
+	return &Logger{
+		Logger:             logrus.New(),
+		defaultTraceId:     "traceID",
+		defaultSpanId:      "spanID",
+		defaultServiceName: "",
+		defaultAttributes:  []attribute.KeyValue(nil),
+		defaultAttrPrefix:  "trace.attribute",
+	}
+}
 
-	// _attrPrefix x
-	_attrPrefix = "trace.attribute"
+var (
+	_logger = defaultLogger()
 )
 
 // SetLogOptions takes LogOption's and overwrites library defaults
+// Deprecated: Prefer the use of Logger by using the New function over setting the default logger
 func SetLogOptions(options ...LogOption) {
+	_logger = initLogger(options)
+}
+
+func initLogger(options []LogOption) *Logger {
 	// initialize an empty logConfig
 	config := &logConfig{}
-
+	logger := defaultLogger()
 	for _, option := range options {
 		option(config)
 	}
 
-	if config.traceId != "" {
-		_traceId = config.traceId
+	if config.traceIdName != "" {
+		logger.defaultTraceId = config.traceIdName
 	}
 
-	if config.spanId != "" {
-		_traceId = config.spanId
+	if config.spanIdName != "" {
+		logger.defaultSpanId = config.spanIdName
 	}
 
 	if config.serviceName != "" {
-		_serviceName = config.serviceName
+		logger.defaultServiceName = config.serviceName
 	}
 
 	if config.attributePrefix != "" {
 		ap, _ := strings.CutSuffix(config.attributePrefix, ".")
-		_attrPrefix = ap
+		logger.defaultAttrPrefix = ap
 	}
 
 	if len(config.attributes) > 0 {
-		_attributes = append(_attributes, config.attributes...)
+		logger.defaultAttributes = append(logger.defaultAttributes, config.attributes...)
+	}
+
+	if config.hook == nil && !config.bridgeDisabled {
+		var name string
+		if config.serviceName != "" {
+			name = config.serviceName
+		} else {
+			name = "unknownService"
+		}
+
+		if config.provider == nil {
+			config.hook = otellogrus.NewHook(name, otellogrus.WithLoggerProvider(noop.NewLoggerProvider()))
+		} else {
+			config.hook = otellogrus.NewHook(name, otellogrus.WithLoggerProvider(config.provider))
+		}
+	}
+
+	if !config.bridgeDisabled {
+		if config.hook != nil {
+			// Set the hook for logrus
+			logger.Logger.AddHook(config.hook)
+		}
+	}
+
+	_logger = logger
+
+	return logger
+}
+
+// WithTraceIDName overwrites the default 'traceID' naming field in the structured logs with your own key
+func WithTraceIDName(traceID string) LogOption {
+	return func(c *logConfig) {
+		c.traceIdName = traceID
 	}
 }
 
-// WithTraceID overwrites the default 'traceID' field in the structured logs with your own key
-func WithTraceID(traceID string) LogOption {
+// WithSpanIDName overwrites the default 'spanID' naming field in the structured logs with your own key
+func WithSpanIDName(spanID string) LogOption {
 	return func(c *logConfig) {
-		c.traceId = traceID
-	}
-}
-
-// WithSpanID overwrites the default 'spanID' field in the structured logs with your own key
-func WithSpanID(spanID string) LogOption {
-	return func(c *logConfig) {
-		c.spanId = spanID
+		c.spanIdName = spanID
 	}
 }
 
@@ -128,52 +177,90 @@ func WithAttributes(attributes ...attribute.KeyValue) LogOption {
 	}
 }
 
+// WithBridgeDisabled disables the OpenTelemetry logging bridge
+func WithBridgeDisabled() LogOption {
+	return func(c *logConfig) {
+		c.bridgeDisabled = true
+	}
+}
+
 // AddTracingContext lets you add the trace context to a structured log
 func AddTracingContext(span trace.Span, err ...error) logrus.Fields {
-	a := []attribute.KeyValue(nil)
-	return AddTracingContextWithAttributes(span, a, err...)
+	return _logger.addTracingContext(span, err...)
 }
 
 // AddTracingContextWithAttributes lets you add the trace context to a structured log, including attribute.KeyValue's to extend the log
 func AddTracingContextWithAttributes(span trace.Span, attributes []attribute.KeyValue, err ...error) logrus.Fields {
+	return _logger.addTraceContextWithAttributes(span, attributes, err...)
+}
+
+func (l *Logger) addTracingContext(span trace.Span, err ...error) logrus.Fields {
+	a := []attribute.KeyValue(nil)
+	return l.addTraceContextWithAttributes(span, a, err...)
+}
+
+func (l *Logger) addTraceContextWithAttributes(span trace.Span, attributes []attribute.KeyValue, err ...error) logrus.Fields {
 	fields := logrus.Fields{}
-	if len(err) > 0 {
-		span.RecordError(err[0])
-		span.SetStatus(codes.Error, err[0].Error())
-		fields["error"] = err[0]
-	}
-	fields[_traceId] = span.SpanContext().TraceID().String()
-	fields[_spanId] = span.SpanContext().SpanID().String()
-	// set service.name if the value isn't empty
-	if _serviceName != "" {
-		fields["service.name"] = _serviceName
-	}
+	fields = handleError(span, err, fields)
+	fields = l.addTraceContextToLog(span, fields)
+	fields = l.addServiceName(fields)
 
-	attrs := attributes
-	attrs = append(attrs, _attributes...)
+	// _attributes are a global set of attributes added at initialization
+	attributes = append(attributes, l.defaultAttributes...)
 
-	// add attributes when global or passed attributes are > 0
-	if len(attrs) > 0 {
-		for _, attr := range attrs {
+	// add attributes when global or passed in attributes are > 0
+	if len(attributes) > 0 {
+		for _, attr := range attributes {
 			switch attr.Value.Type() {
 			case attribute.STRING:
-				fields[_attrPrefix+"."+string(attr.Key)] = attr.Value.AsString()
+				fields[l.defaultAttrPrefix+"."+string(attr.Key)] = attr.Value.AsString()
 			case attribute.FLOAT64:
-				fields[_attrPrefix+"."+string(attr.Key)] = attr.Value.AsFloat64()
+				fields[l.defaultAttrPrefix+"."+string(attr.Key)] = attr.Value.AsFloat64()
 			case attribute.BOOL:
-				fields[_attrPrefix+"."+string(attr.Key)] = attr.Value.AsBool()
+				fields[l.defaultAttrPrefix+"."+string(attr.Key)] = attr.Value.AsBool()
 			case attribute.INT64:
-				fields[_attrPrefix+"."+string(attr.Key)] = attr.Value.AsInt64()
+				fields[l.defaultAttrPrefix+"."+string(attr.Key)] = attr.Value.AsInt64()
 			case attribute.BOOLSLICE:
-				fields[_attrPrefix+"."+string(attr.Key)] = attr.Value.AsBoolSlice()
+				fields[l.defaultAttrPrefix+"."+string(attr.Key)] = attr.Value.AsBoolSlice()
 			case attribute.INT64SLICE:
-				fields[_attrPrefix+"."+string(attr.Key)] = attr.Value.AsInt64Slice()
+				fields[l.defaultAttrPrefix+"."+string(attr.Key)] = attr.Value.AsInt64Slice()
 			case attribute.FLOAT64SLICE:
-				fields[_attrPrefix+"."+string(attr.Key)] = attr.Value.AsFloat64Slice()
+				fields[l.defaultAttrPrefix+"."+string(attr.Key)] = attr.Value.AsFloat64Slice()
 			case attribute.STRINGSLICE:
-				fields[_attrPrefix+"."+string(attr.Key)] = attr.Value.AsStringSlice()
+				fields[l.defaultAttrPrefix+"."+string(attr.Key)] = attr.Value.AsStringSlice()
+			default:
+				if attr.Value.Type() != attribute.INVALID {
+					l.WithFields(logrus.Fields{
+						"attribute_key":   string(attr.Key),
+						"attribute_value": attr.Value,
+					}).Debug("invalid attribute value type")
+				}
+				continue
 			}
 		}
+	}
+	return fields
+}
+
+func (l *Logger) addServiceName(fields logrus.Fields) logrus.Fields {
+	// set service.name if the value isn't empty
+	if l.defaultServiceName != "" {
+		fields["service.name"] = l.defaultServiceName
+	}
+	return fields
+}
+
+func (l *Logger) addTraceContextToLog(span trace.Span, fields logrus.Fields) logrus.Fields {
+	fields[l.defaultTraceId] = span.SpanContext().TraceID().String()
+	fields[l.defaultSpanId] = span.SpanContext().SpanID().String()
+	return fields
+}
+
+func handleError(span trace.Span, err []error, fields logrus.Fields) logrus.Fields {
+	if len(err) > 0 && err[0] != nil {
+		span.RecordError(err[0])
+		span.SetStatus(codes.Error, err[0].Error())
+		fields["error"] = err[0].Error()
 	}
 	return fields
 }
@@ -223,7 +310,7 @@ Return:
   - A pointer to new Logger.
 */
 func New(options ...LoggerOption) *Logger {
-	l := &Logger{logrus.New()}
+	l := defaultLogger()
 	c := &loggerConfig{level: logrus.InfoLevel}
 	for _, opt := range options {
 		opt(c)
@@ -238,6 +325,11 @@ func New(options ...LoggerOption) *Logger {
 	return l
 }
 
+// NewWithLogOptions creates a new Logger with given LogOptions.
+func NewWithLogOptions(options ...LogOption) *Logger {
+	return initLogger(options)
+}
+
 // WithTracingContext is a method on the Logger type. It uses the
 // AddTracingContext helper function to gather tracing context from
 // the given span and error, then creates a logrus.Entry with
@@ -249,8 +341,8 @@ func New(options ...LoggerOption) *Logger {
 // only the first error is actually used, the variadic nature of this parameter is used to make it optional.
 //
 // It ultimately returns a pointer to a logrus.Entry populated with the tracing context.
-func (l Logger) WithTracingContext(span trace.Span, err ...error) *logrus.Entry {
-	return l.WithFields(AddTracingContext(span, err...))
+func (l *Logger) WithTracingContext(span trace.Span, err ...error) *logrus.Entry {
+	return l.WithFields(l.addTracingContext(span, err...))
 }
 
 // WithTracingContextAndAttributes is a method on the Logger type. Similar to WithTracingContext,
@@ -268,6 +360,6 @@ func (l Logger) WithTracingContext(span trace.Span, err ...error) *logrus.Entry 
 // of this parameter is used to make it optional.
 //
 // It ultimately returns a pointer to a logrus.Entry populated with the tracing context and attributes.
-func (l Logger) WithTracingContextAndAttributes(span trace.Span, attributes []attribute.KeyValue, err ...error) *logrus.Entry {
-	return l.WithFields(AddTracingContextWithAttributes(span, attributes, err...))
+func (l *Logger) WithTracingContextAndAttributes(span trace.Span, attributes []attribute.KeyValue, err ...error) *logrus.Entry {
+	return l.WithFields(l.addTraceContextWithAttributes(span, attributes, err...))
 }

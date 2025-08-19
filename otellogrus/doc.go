@@ -25,8 +25,8 @@ Adding trace context ata to logs can be achieved by using logrus.WithFields(AddT
 Functions
 
 	func SetLogOptions(options ...LogOption)
-	func WithTraceID(traceID string) LogOption
-	func WithSpanID(spanID string) LogOption
+	func WithTraceIDName(traceID string) LogOption
+	func WithSpanIDName(spanID string) LogOption
 	func WithServiceName(serviceName string) LogOption
 	func WithAttributePrefix(prefix string) LogOption
 	func WithAttributes(attributes ...attribute.KeyValue) LogOption
@@ -47,8 +47,8 @@ Structs
 	    type logConfig struct {
 	        attributes      []attribute.KeyValue
 			serviceName     string
-			traceId         string
-			spanId          string
+			traceIdName         string
+			spanIdName          string
 			attributePrefix string
 		}
 		type Logger struct {

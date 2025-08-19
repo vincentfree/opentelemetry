@@ -99,7 +99,7 @@ func ExampleWithLogProviderOptions() {
 	)
 }
 
-func ExampleWithMetricProviderOptions() {
+func ExampleWithPeriodicReaderOptions() {
 	providerconfig.New(
 		providerconfig.WithPeriodicReaderOptions(sdkmetric.WithTimeout(30 * time.Second)),
 	)

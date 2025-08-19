@@ -15,8 +15,9 @@
 package otelslog
 
 import (
-	otelslogger "go.opentelemetry.io/contrib/bridges/otelslog"
 	"log/slog"
+
+	otelslogger "go.opentelemetry.io/contrib/bridges/otelslog"
 )
 
 func WithOtelBridge(name string, options ...otelslogger.Option) LogOption {
