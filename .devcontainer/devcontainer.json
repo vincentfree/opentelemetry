@@ -3,32 +3,41 @@
 {
 	"name": "Go",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/go:1-1.23-bookworm",
+	"image": "mcr.microsoft.com/devcontainers/go:1-1.24-bookworm",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
-	 "features": {
-//       "ghcr.io/prulloac/devcontainer-features/ollama" : {"pull": ""},
-     },
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/devcontainers/features/go:1": {}
+	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "go version",
+	"postCreateCommand": "go version && go mod download && go install golang.org/x/tools/gopls@latest && go install github.com/go-delve/delve/cmd/dlv@latest",
 
 	// Configure tool-specific properties.
-  "customizations" : {
-    "jetbrains" : {
-      "backend" : "GoLand"
-    },
-	"vscode": {
-		"extensions": [
-			"golang.go",
-			"windmilleng.vscode-go-autotest",
-			"usernamehw.errorlens"
-		]
+	"customizations": {
+		"jetbrains": {
+			"backend": "GoLand"
+		},
+		"vscode": {
+			"extensions": [
+				"golang.go",
+				"windmilleng.vscode-go-autotest",
+				"usernamehw.errorlens",
+				"golang.vscode-go-impl",
+				"premparihar.gotestexplorer",
+				"redhat.vscode-yaml",
+				"ms-azuretools.vscode-docker",
+				"github.vscode-github-actions",
+				"streetsidesoftware.code-spell-checker",
+				"eamodio.gitlens"
+			]
+		}
 	}
-  }
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
